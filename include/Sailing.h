@@ -14,10 +14,10 @@ class Sailing
 public:
 //------------------------------------------------------------
     static bool CreateSailing(
-        const std::string &arrivalCity,   // IN  : port of arrival
-        const std::string &vesselName,    // IN  : vessel assigned
-        const std::string &dateISO,       // IN  : "YYYY-MM-DD"
-        const std::string &timeHHMM       // IN  : "HHMM"
+         std::string arrivalCity,   // IN  : port of arrival
+         std::string vesselName,    // IN  : vessel assigned
+         std::string dateISO,       // IN  : "YYYY-MM-DD"
+         std::string timeHHMM       // IN  : "HHMM"
     );
 //------------------------------------------------------------
     static bool DeleteSailing(

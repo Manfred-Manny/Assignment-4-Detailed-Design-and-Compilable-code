@@ -13,7 +13,7 @@
 
 //------------------------------------------------------------
 // Simple aliases used across all modules.
-typedef unsigned int  SailingID;      // IN : unique sailing identifier
+typedef std::string SailingID;      // IN : unique sailing identifier
 typedef unsigned int  ReservationID;  // IN : unique reservation identifier
 
 #endif // COMMONTYPES_H
