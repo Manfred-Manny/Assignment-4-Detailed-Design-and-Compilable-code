@@ -1,7 +1,7 @@
 //************************************************************
 //************************************************************
 //  FileIO_Sailings.cpp
-//  CMPT 276 – Assignment 4 (Fahad Y)
+//  CMPT 276 – Assignment 4 (Fahad M)
 //
 //  PURPOSE:
 //    Implements binary file I/O operations for managing ferry sailings.

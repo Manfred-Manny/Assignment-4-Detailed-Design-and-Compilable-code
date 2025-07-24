@@ -1,3 +1,17 @@
+//************************************************************
+//************************************************************
+//  FileIO_Reservations.cpp
+//  CMPT 276 – Assignment 4 (Fahad Y)
+//    Implements file I/O operations for reservations, including
+//    creation, deletion, check-in, and queries for available space.
+//
+//    • Encodes/decodes reservation records to fixed-length binary
+//    • Supports appending, updating, and sequential retrieval
+//    • Cascade deletion when a sailing is removed
+//    • Works alongside VehicleRecord and Sailing I/O modules
+//************************************************************
+//************************************************************
+
 #include "FileIO_Reservations.h"
 #include "FileIO_VehicleRecord.h"
 #include "FileIO_Sailings.h"
@@ -28,7 +42,8 @@ static std::string decodeLicense(const char src[10])
 // ---------------------------------------------------------------------------
 // Reset sequential read (no persistent file pointer needed here)
 // ---------------------------------------------------------------------------
-void FileIO_Reservations::reset() {
+void FileIO_Reservations::reset()
+{
     // Intentionally left blank – handled by fresh stream creation per call.
 }
 

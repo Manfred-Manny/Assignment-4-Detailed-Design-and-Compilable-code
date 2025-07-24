@@ -1,20 +1,38 @@
+//************************************************************
+//************************************************************
+//  Sailing.cpp
+//  CMPT 276 – Assignment 4 (Fahad M)
+//    Implements the Sailing class, which manages the creation,
+//    deletion, and reporting of ferry sailings.
+//
+//    • Builds SailingID using Arrival City, Date, and Time
+//    • Validates vessel existence before creating sailings
+//    • Prevents duplicate sailings (same date/time)
+//    • Supports printing status and full sailing reports
+//************************************************************
+//************************************************************
+
 #include "Sailing.h"
 #include "FileIO_Vessel.h"
 #include "FileIO_Sailings.h"
 
 // ---------------------------------------------------------------------------
 // Create New Sailing
-SailingStatus Sailing::CreateSailing(const std::string &ArrivalCity,const std::string &VesselName,const std::string &Date,
-const std::string &Time)
+// ---------------------------------------------------------------------------
+SailingStatus Sailing::CreateSailing(const std::string &ArrivalCity,
+                                     const std::string &VesselName,
+                                     const std::string &Date,
+                                     const std::string &Time)
 {
     // Build Sailing ID
-    // Date: YY-MM-DD → we want DD (last 2 chars)
-    std::string day = Date.substr(6, 2);  // Starts at position 6, length 2
-    // Time: HHMM → we want HH (first 2 chars)
-    std::string hour = Time.substr(0, 2); // Starts at position 0, length 2
-   // Build SailingID
-   std::string SailingID = ArrivalCity + ":" + day + ":" + hour;
+    // Extract day from date (YY-MM-DD → DD)
+    std::string day = Date.substr(6, 2);
 
+    // Extract hour from time (HHMM → HH)
+    std::string hour = Time.substr(0, 2);
+
+    // Combine parts into SailingID format: CITY:DD:HH
+    std::string SailingID = ArrivalCity + ":" + day + ":" + hour;
 
     // 1. Check vessel existence
     unsigned int laneHCL = 0;
@@ -32,7 +50,8 @@ const std::string &Time)
 }
 
 // ---------------------------------------------------------------------------
-// Delete Sailing (still simple yes/no result)
+// Delete Sailing
+// ---------------------------------------------------------------------------
 bool Sailing::DeleteSailing(SailingID sailingID)
 {
     if (!FileIO_Sailings::Sailingexist(sailingID))
@@ -42,7 +61,8 @@ bool Sailing::DeleteSailing(SailingID sailingID)
 }
 
 // ---------------------------------------------------------------------------
-// Print Status
+// Print Status for a Single Sailing
+// ---------------------------------------------------------------------------
 bool Sailing::printStatus(SailingID sailingID)
 {
     if (!FileIO_Sailings::Sailingexist(sailingID))
@@ -52,10 +72,15 @@ bool Sailing::printStatus(SailingID sailingID)
 }
 
 // ---------------------------------------------------------------------------
+// Print Full Sailing Report
+// ---------------------------------------------------------------------------
 void Sailing::printReport()
 {
     FileIO_Sailings::Sailingreport();
 }
 
+// ---------------------------------------------------------------------------
+// Lifecycle (Initialize / Shutdown)
+// ---------------------------------------------------------------------------
 void Sailing::initialize() {}
 void Sailing::shutdown() {}

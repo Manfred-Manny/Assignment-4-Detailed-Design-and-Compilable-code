@@ -1,3 +1,17 @@
+//************************************************************
+//************************************************************
+//  FileIO_VehicleRecord.cpp
+//  CMPT 276 – Assignment 4 (Fahad Y)
+//    Implements file I/O operations for vehicle records,
+//    supporting creation, lookup, listing, and deletion.
+//
+//    • Encodes/decodes VehicleRecord to fixed-length binary
+//    • Appends new vehicles to vehicles.dat
+//    • Supports searching and deleting vehicles by license
+//    • Provides debug listing of all vehicles
+//************************************************************
+//************************************************************
+
 #include "FileIO_VehicleRecord.h"
 #include <fstream>
 #include <iostream>
@@ -6,8 +20,9 @@
 
 namespace FerrySys {
 
-// ------------------------------------------------------------
-// Write vehicle to vehicles.dat (append mode)
+// ---------------------------------------------------------------------------
+// Append new vehicle to vehicles.dat
+// ---------------------------------------------------------------------------
 bool FileIO_VehicleRecord::writeVehicle(const VehicleRecord &vehicle)
 {
     VehicleRaw raw{};
@@ -23,8 +38,9 @@ bool FileIO_VehicleRecord::writeVehicle(const VehicleRecord &vehicle)
     return true;
 }
 
-// ------------------------------------------------------------
-// Find vehicle by license
+// ---------------------------------------------------------------------------
+// Find vehicle by license and load into result
+// ---------------------------------------------------------------------------
 bool FileIO_VehicleRecord::findVehicle(const std::string &license, VehicleRecord &result)
 {
     std::ifstream file("vehicles.dat", std::ios::binary);
@@ -43,16 +59,18 @@ bool FileIO_VehicleRecord::findVehicle(const std::string &license, VehicleRecord
     return false;
 }
 
-// ------------------------------------------------------------
-// Check if vehicle exists by license
+// ---------------------------------------------------------------------------
+// Check if a vehicle exists by license
+// ---------------------------------------------------------------------------
 bool FileIO_VehicleRecord::vehicleExists(const std::string &license)
 {
     VehicleRecord temp;
     return findVehicle(license, temp);
 }
 
-// ------------------------------------------------------------
-// List all vehicles (debug/report)
+// ---------------------------------------------------------------------------
+// List all vehicles (formatted table output for debugging/reporting)
+// ---------------------------------------------------------------------------
 void FileIO_VehicleRecord::listVehicles()
 {
     std::ifstream file("vehicles.dat", std::ios::binary);
@@ -83,8 +101,9 @@ void FileIO_VehicleRecord::listVehicles()
     std::cout << "------------------------------------------------------------\n";
 }
 
-// ------------------------------------------------------------
-// Delete a vehicle by rewriting the file without it
+// ---------------------------------------------------------------------------
+// Delete vehicle by rewriting file without the target record
+// ---------------------------------------------------------------------------
 bool FileIO_VehicleRecord::deleteVehicle(const std::string &license)
 {
     std::ifstream file("vehicles.dat", std::ios::binary);
