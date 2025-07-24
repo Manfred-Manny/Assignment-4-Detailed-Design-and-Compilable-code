@@ -4,12 +4,10 @@
 //  CMPT 276 – Assignment 4 (Fahad Y)
 //
 //  PURPOSE:
-//    Low-level binary file operations for ferry reservations.
+//    Provides low-level binary I/O for ferry reservations.
+//    Ensures consistent encoding/decoding of license plates
+//    and Sailing IDs with built-in trimming.
 //
-//  DESIGN NOTES:
-//    • Records are fixed-length binary for consistent I/O.
-//    • Each record links a vehicle (license plate) to a sailing ID.
-//    • Operations include create, delete, check-in, and cascade deletions.
 //************************************************************
 //************************************************************
 
@@ -24,7 +22,7 @@
 //************************************************************
 struct ReservationRec {
     char licenseplate[10];   // Fixed 10 chars (space-padded)
-    char sailingID[16];      // Fixed 16 chars (matches Sailingrec::id)
+    char sailingID[16];      // Fixed 16 chars (space-padded)
     bool checkedIn;          // Check-in status
 };
 
@@ -71,14 +69,14 @@ public:
     );
 
     //------------------------------------------------------------
-    // Delete all reservations for a given sailing (cascade delete)
-    static bool deleteReservationsBySailing(
+    // Compute total available space (HCL + LCL) for a sailing
+    static int spaceAvailable(
         SailingID sailingID               // IN: sailing ID
     );
 
     //------------------------------------------------------------
-    // Compute total available space (HCL + LCL) for a sailing
-    static int spaceAvailable(
+    // Delete all reservations for a given sailing (cascade delete)
+    static bool deleteReservationsBySailing(
         SailingID sailingID               // IN: sailing ID
     );
 };

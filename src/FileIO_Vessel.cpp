@@ -125,10 +125,6 @@ bool FileIO_Vessel::deleteVessel(const std::string &vesselName)
 
     std::remove("vessels.dat");
     std::rename("temp.dat", "vessels.dat");
-
-    // Cascade delete all sailings (and reservations) tied to this vessel
-    FileIO_Sailings::deleteSailingsByVessel(vesselName);
-
     return found;
 }
 

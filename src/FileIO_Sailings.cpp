@@ -116,7 +116,6 @@ bool FileIO_Sailings::deleteSailing(SailingID sailingIDtoDelete) {
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
         if (sanitizeCharArray(rec.id) == sailingIDtoDelete) {
             found = true;
-            FileIO_Reservations::deleteReservationsBySailing(sailingIDtoDelete);
         } else {
             temp.write(reinterpret_cast<char*>(&rec), sizeof(rec));
         }
@@ -131,36 +130,6 @@ bool FileIO_Sailings::deleteSailing(SailingID sailingIDtoDelete) {
     return found;
 }
 
-//------------------------------------------------------------
-// Delete all sailings for a vessel (cascade reservations)
-//------------------------------------------------------------
-bool FileIO_Sailings::deleteSailingsByVessel(const std::string &vesselName) {
-    std::ifstream inFile("sailings.dat", std::ios::binary);
-    std::ofstream outFile("temp.dat", std::ios::binary);
-    if (!inFile || !outFile) return false;
-
-    Sailingrec rec{};
-    bool found = false;
-
-    while (inFile.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        std::string fileVesselName = sanitizeCharArray(rec.VesselName);
-
-        if (fileVesselName == vesselName) {
-            FileIO_Reservations::deleteReservationsBySailing(sanitizeCharArray(rec.id));
-            found = true;
-        } else {
-            outFile.write(reinterpret_cast<char*>(&rec), sizeof(rec));
-        }
-    }
-
-    inFile.close();
-    outFile.close();
-
-    std::remove("sailings.dat");
-    std::rename("temp.dat", "sailings.dat");
-
-    return found;
-}
 
 //------------------------------------------------------------
 // Check if sailing exists by ID

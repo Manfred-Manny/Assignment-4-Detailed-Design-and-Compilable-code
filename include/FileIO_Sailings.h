@@ -87,10 +87,6 @@ public:
         int amount
     );
 
-    // Delete all sailings for a given vessel (cascades reservations)
-    static bool deleteSailingsByVessel(
-        const std::string &vesselName
-    );
 };
 
 #endif // FILEIO_SAILINGS_H
