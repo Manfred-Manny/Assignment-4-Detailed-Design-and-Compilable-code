@@ -4,15 +4,9 @@
 //  CMPT 276 – Assignment 4 (Fahad M)
 //
 //  PURPOSE:
-//    Implements binary file I/O operations for managing ferry sailings.
-//    Supports adding, searching, deleting sailings, dynamically updating
-//    lane capacities, and cascading deletion of related reservations.
-//
-//  FILE LAYOUT (sailings.dat):
-//    • Sailing ID (string, primary key)
-//    • Vessel name (associated vessel)
-//    • Remaining lane space for High-Ceiling (HCL) and Low-Ceiling (LCL)
-//
+//    Implements binary file I/O for ferry sailings with fixed-size
+//    fields to ensure predictable storage and retrieval. Supports
+//    adding, searching, deleting, updating, and reporting sailings.
 //************************************************************
 //************************************************************
 
@@ -22,6 +16,14 @@
 #include <fstream>
 #include <iomanip>
 #include <cstring>
+
+//------------------------------------------------------------
+// Helper: Sanitize char[] to std::string (strip trailing \0)
+//------------------------------------------------------------
+static std::string sanitizeCharArray(const char* raw) {
+    std::string s(raw);
+    return s.substr(0, s.find('\0'));
+}
 
 //------------------------------------------------------------
 // Sequentially retrieve next sailing record
@@ -37,8 +39,8 @@ bool FileIO_Sailings::getNextSailing(
 
     Sailingrec rec{};
     if (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        sailingID = rec.id;
-        vesselName = rec.VesselName;
+        sailingID = sanitizeCharArray(rec.id);
+        vesselName = sanitizeCharArray(rec.VesselName);
         remainingHCL = rec.remainingHCL;
         remainingLCL = rec.remainingLCL;
         return true;
@@ -63,9 +65,12 @@ void FileIO_Sailings::writeSailing(
     }
 
     Sailingrec rec{};
-    rec.id = sailingID;
+    std::memset(rec.id, '\0', sizeof(rec.id));
+    std::strncpy(rec.id, sailingID.c_str(), sizeof(rec.id) - 1);
+
+    std::memset(rec.VesselName, '\0', sizeof(rec.VesselName));
     std::strncpy(rec.VesselName, vesselName.c_str(), sizeof(rec.VesselName) - 1);
-    rec.VesselName[sizeof(rec.VesselName) - 1] = '\0';
+
     rec.remainingHCL = remainingHCL;
     rec.remainingLCL = remainingLCL;
 
@@ -81,7 +86,7 @@ bool FileIO_Sailings::findSailing(SailingID sailingID, Sailingrec &result) {
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        if (rec.id == sailingID) {
+        if (sanitizeCharArray(rec.id) == sailingID) {
             result = rec;
             return true;
         }
@@ -90,16 +95,16 @@ bool FileIO_Sailings::findSailing(SailingID sailingID, Sailingrec &result) {
 }
 
 //------------------------------------------------------------
-// Delete sailing by ID (also deletes reservations for it)
+// Delete sailing by ID (cascade reservations)
 //------------------------------------------------------------
 bool FileIO_Sailings::deleteSailing(SailingID sailingIDtoDelete) {
-    std::fstream file("sailings.dat", std::ios::binary | std::ios::in);
+    std::ifstream file("sailings.dat", std::ios::binary);
     if (!file) {
         std::cerr << "Error: Unable to open sailings.dat for reading!\n";
         return false;
     }
 
-    std::fstream temp("temp.dat", std::ios::binary | std::ios::out);
+    std::ofstream temp("temp.dat", std::ios::binary);
     if (!temp) {
         std::cerr << "Error: Unable to open temp.dat for writing!\n";
         return false;
@@ -109,8 +114,8 @@ bool FileIO_Sailings::deleteSailing(SailingID sailingIDtoDelete) {
     bool found = false;
 
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        if (rec.id == sailingIDtoDelete) {
-            found = true; // Skip this sailing
+        if (sanitizeCharArray(rec.id) == sailingIDtoDelete) {
+            found = true;
             FileIO_Reservations::deleteReservationsBySailing(sailingIDtoDelete);
         } else {
             temp.write(reinterpret_cast<char*>(&rec), sizeof(rec));
@@ -127,7 +132,7 @@ bool FileIO_Sailings::deleteSailing(SailingID sailingIDtoDelete) {
 }
 
 //------------------------------------------------------------
-// Delete all sailings for a vessel (and related reservations)
+// Delete all sailings for a vessel (cascade reservations)
 //------------------------------------------------------------
 bool FileIO_Sailings::deleteSailingsByVessel(const std::string &vesselName) {
     std::ifstream inFile("sailings.dat", std::ios::binary);
@@ -138,12 +143,11 @@ bool FileIO_Sailings::deleteSailingsByVessel(const std::string &vesselName) {
     bool found = false;
 
     while (inFile.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        std::string fileVesselName(rec.VesselName);
-        fileVesselName = fileVesselName.substr(0, fileVesselName.find('\0'));
+        std::string fileVesselName = sanitizeCharArray(rec.VesselName);
 
         if (fileVesselName == vesselName) {
-            FileIO_Reservations::countReservationsForSailing(rec.id);
-            found = true; // This sailing will be deleted
+            FileIO_Reservations::deleteReservationsBySailing(sanitizeCharArray(rec.id));
+            found = true;
         } else {
             outFile.write(reinterpret_cast<char*>(&rec), sizeof(rec));
         }
@@ -167,7 +171,7 @@ bool FileIO_Sailings::Sailingexist(SailingID sailingID) {
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        if (rec.id == sailingID) {
+        if (sanitizeCharArray(rec.id) == sailingID) {
             return true;
         }
     }
@@ -194,8 +198,8 @@ void FileIO_Sailings::Sailingreport() {
     std::cout << "----------------------------------------------------------------------------------------------------------------\n";
 
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        std::cout << std::left << std::setw(15) << rec.id
-                  << std::setw(25) << rec.VesselName
+        std::cout << std::left << std::setw(15) << sanitizeCharArray(rec.id)
+                  << std::setw(25) << sanitizeCharArray(rec.VesselName)
                   << std::setw(20) << rec.remainingHCL
                   << std::setw(20) << rec.remainingLCL << "\n";
     }
@@ -215,7 +219,7 @@ bool FileIO_Sailings::sailingstatus(SailingID sailingID) {
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        if (rec.id == sailingID) {
+        if (sanitizeCharArray(rec.id) == sailingID) {
             int reservationCount = FileIO_Reservations::countReservationsForSailing(sailingID);
 
             std::cout << "----------------------------------------------------------------------------------------------------------------\n";
@@ -225,7 +229,7 @@ bool FileIO_Sailings::sailingstatus(SailingID sailingID) {
                       << std::setw(20) << "Remaining LCL" << "\n";
             std::cout << "----------------------------------------------------------------------------------------------------------------\n";
 
-            std::cout << std::left << std::setw(15) << rec.id
+            std::cout << std::left << std::setw(15) << sanitizeCharArray(rec.id)
                       << std::setw(25) << reservationCount
                       << std::setw(20) << rec.remainingHCL
                       << std::setw(20) << rec.remainingLCL << "\n";
@@ -250,10 +254,7 @@ bool FileIO_Sailings::getRemainingSpace(
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        std::string idFromFile(rec.id);
-        idFromFile = idFromFile.substr(0, idFromFile.find('\0'));
-
-        if (idFromFile == sailingID) {
+        if (sanitizeCharArray(rec.id) == sailingID) {
             remainingHCL = rec.remainingHCL;
             remainingLCL = rec.remainingLCL;
             return true;
@@ -275,16 +276,12 @@ bool FileIO_Sailings::updateSailingSpace(
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        std::string idFromFile(rec.id);
-        idFromFile = idFromFile.substr(0, idFromFile.find('\0'));
-
-        if (idFromFile == sailingID) {
+        if (sanitizeCharArray(rec.id) == sailingID) {
             if (isHighCeiling)
                 rec.remainingHCL += amount;
             else
                 rec.remainingLCL += amount;
 
-            // Prevent negatives
             if (rec.remainingHCL < 0) rec.remainingHCL = 0;
             if (rec.remainingLCL < 0) rec.remainingLCL = 0;
 

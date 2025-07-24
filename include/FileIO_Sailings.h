@@ -4,23 +4,12 @@
 //  CMPT 276 – Assignment 4 (Fahad M)
 //
 //  PURPOSE:
-//    This header defines binary file operations for ferry sailings,
-//    stored in `sailings.dat`. Each record contains:
+//    Defines binary file operations for ferry sailings, stored
+//    in `sailings.dat`. Each record contains:
+//      • Fixed-length Sailing ID (primary key)
+//      • Fixed-length Vessel name
+//      • Remaining lane space for HCL and LCL vehicles
 //
-//      • Sailing ID (string, serves as primary key)
-//      • Vessel name associated with sailing
-//      • Remaining lane space for high-ceiling (HCL) and low-ceiling (LCL) vehicles
-//
-//  FUNCTIONALITY:
-//    • Add new sailing records (append mode)
-//    • Sequential or targeted search by sailing ID
-//    • Delete sailings by ID or all sailings for a vessel
-//    • Update remaining lane capacities dynamically (reservations)
-//    • Generate formatted sailing reports or specific sailing status
-//
-//  NOTES:
-//    - File structure is fixed-length binary for simplicity
-//    - No sorting or indexing; operations are linear scans
 //************************************************************
 //************************************************************
 
@@ -35,105 +24,72 @@
 // Binary layout of a single sailing record in `sailings.dat`
 //------------------------------------------------------------
 struct Sailingrec {
-    SailingID id;                  // Unique sailing identifier
-    char VesselName[25];           // Associated vessel (null-terminated)
-    unsigned short remainingHCL;   // Remaining high-ceiling lane length (m)
-    unsigned short remainingLCL;   // Remaining low-ceiling lane length (m)
+    char id[16];                  // Fixed-length Sailing ID (e.g., "YYZ:23:12")
+    char VesselName[25];          // Fixed-length Vessel name
+    unsigned short remainingHCL;  // Remaining high-ceiling lane length
+    unsigned short remainingLCL;  // Remaining low-ceiling lane length
 };
 
 class FileIO_Sailings
 {
 public:
-    //------------------------------------------------------------
-    // Sequentially read next sailing record.
-    // Preconditions : File must exist and contain records.
-    // Postconditions: Returns true and populates fields if successful,
-    //                 false on EOF or error.
+    // Sequentially read next sailing record
     static bool getNextSailing(
-        SailingID        &sailingID,      // OUT: Sailing primary key
-        std::string      &vesselName,     // OUT: Vessel name
-        unsigned short   &remainingHCL,   // OUT: HCL lane space
-        unsigned short   &remainingLCL    // OUT: LCL lane space
+        SailingID &sailingID,
+        std::string &vesselName,
+        unsigned short &remainingHCL,
+        unsigned short &remainingLCL
     );
 
-    //------------------------------------------------------------
-    // Append a new sailing record to `sailings.dat`.
-    // Preconditions : Data validated (unique ID, valid vessel).
-    // Postconditions: Record is added to file.
+    // Append new sailing record
     static void writeSailing(
-        SailingID          sailingID,     // IN: Unique ID
-        const std::string &vesselName,    // IN: Vessel name
-        unsigned short     remainingHCL,  // IN: HCL lane space
-        unsigned short     remainingLCL   // IN: LCL lane space
+        SailingID sailingID,
+        const std::string &vesselName,
+        unsigned short remainingHCL,
+        unsigned short remainingLCL
     );
 
-    //------------------------------------------------------------
-    // Delete a sailing record by its ID.
-    // Preconditions : File must exist.
-    // Postconditions: Returns true if found and deleted; false otherwise.
+    // Delete sailing by ID (cascades reservation deletion)
     static bool deleteSailing(
-        SailingID sailingID                // IN: ID of sailing to delete
+        SailingID sailingIDtoDelete
     );
 
-    //------------------------------------------------------------
-    // Find a sailing record by ID and return details.
-    // Preconditions : File must exist.
-    // Postconditions: Returns true if found, populates `result`.
+    // Find sailing record by ID
     static bool findSailing(
-        SailingID  sailingID,              // IN: ID to search
-        Sailingrec &result                 // OUT: Sailing record
+        SailingID sailingID,
+        Sailingrec &result
     );
 
-    //------------------------------------------------------------
-    // Display formatted status of a single sailing.
-    // Preconditions : File must exist.
-    // Postconditions: Prints status and returns true if found.
+    // Display formatted status of single sailing
     static bool sailingstatus(
-        SailingID sailingID                // IN: ID to query
+        SailingID sailingID
     );
 
-    //------------------------------------------------------------
-    // Print a formatted report of all sailings.
-    // Preconditions : None (prints empty table if file missing/empty).
-    // Postconditions: Outputs sailing details to console.
+    // Print formatted report of all sailings
     static void Sailingreport();
 
-    //------------------------------------------------------------
-    // Check whether a sailing exists by ID.
-    // Preconditions : File must exist.
-    // Postconditions: Returns true if found, false otherwise.
+    // Check if sailing exists by ID
     static bool Sailingexist(
-        SailingID sailingID                // IN: ID to check
+        SailingID sailingID
     );
 
-    //------------------------------------------------------------
-    // Retrieve remaining lane space for a sailing.
-    // Preconditions : Sailing must exist.
-    // Postconditions: Populates remainingHCL and remainingLCL.
+    // Get remaining space for a sailing
     static bool getRemainingSpace(
-        SailingID sailingID,               // IN: ID to query
-        unsigned int &remainingHCL,        // OUT: HCL lane space
-        unsigned int &remainingLCL         // OUT: LCL lane space
+        SailingID sailingID,
+        unsigned int &remainingHCL,
+        unsigned int &remainingLCL
     );
 
-    //------------------------------------------------------------
-    // Update remaining lane space dynamically after reservation changes.
-    // Preconditions : Sailing must exist; amount can be positive (restore)
-    //                 or negative (deduct).
-    // Postconditions: Updates lane capacities; prevents negatives.
+    // Update remaining space dynamically after reservation changes
     static bool updateSailingSpace(
-        SailingID sailingID,               // IN: ID to update
-        bool isHighCeiling,                // IN: Target lane type (HCL/LCL)
-        int amount                         // IN: Adjustment (±length)
+        SailingID sailingID,
+        bool isHighCeiling,
+        int amount
     );
 
-    //------------------------------------------------------------
-    // Delete all sailings for a given vessel.
-    // Also removes reservations tied to these sailings.
-    // Preconditions : File must exist.
-    // Postconditions: Returns true if any sailings were deleted.
+    // Delete all sailings for a given vessel (cascades reservations)
     static bool deleteSailingsByVessel(
-        const std::string &vesselName      // IN: Vessel whose sailings to delete
+        const std::string &vesselName
     );
 };
 
