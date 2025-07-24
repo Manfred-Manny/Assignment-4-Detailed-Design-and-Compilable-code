@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // testFileOps.cpp
-// CMPT 276 – Assignment 4 (Manny T5: UnitTest #1)
+// CMPT 276 – Assignment 4 
 //
 // PURPOSE
 //   Minimal, self-contained test of fixed-length *binary* record I/O.

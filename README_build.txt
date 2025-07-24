@@ -108,4 +108,25 @@ To verify *all modules compile* (A4 expectation), build every .cpp (object-only 
 (You can link into a single dummy exe if you want; not required by A4.)
 
 Teammate Integration Notes
---
+--------------------------
+• Use BinaryFileOps for Vessel / Sailing / Reservation data files.
+• Always encode/decode to fixed-width field buffers; never write raw variable-length strings.
+• Read and write one record at a time; do not preload entire file into memory.
+• Add real implementations to stub modules incrementally; Manny’s test need not change.
+
+Packaging for A4 Submission
+---------------------------
+When assembling the A4 deliverable (PDF/zip):
+  1. List **main.cpp** (if you include it) first.
+  2. For each module: header followed immediately by its .cpp.
+  3. Alphabetical order within the modules section.
+  4. Place **UnitTest(s)** at the end; include a short intro and captured output
+     (copy/paste console or screenshot).
+  5. Clearly indicate where binary data files are written (../data/vehicle_test.dat).
+
+Version History Reminder
+------------------------
+Add/update a short version history comment block (date, author, change note)
+at top of each .cpp before submission.
+
+
