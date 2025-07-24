@@ -1,62 +1,42 @@
 // ---------------------------------------------------------------------------
 // FileIO_VehicleRecord.h
-// CMPT 276 – Assignment 4(Fahad Y)
+// CMPT 276 – Assignment 4 (Fahad Y)
 //
-// This file provides binary file operations for managing `VehicleRecord`
-// entries in the system. Each record is stored in a fixed-length binary format
-// (32 bytes) and accessed by license plate.
+// Binary file operations for vehicle records:
+//   • Append new vehicles
+//   • Search by license plate
+//   • Check if vehicle exists
+//   • Delete vehicle
+//   • List all vehicles (debug/reporting)
 //
-// Supported operations include:
-//   - Adds new vehicles
-//   - Searching by license plate
-//   - Deleting records
-//   - Listing all records (optional/debug)
+// Records are stored in fixed-length binary format (32 bytes).
 // ---------------------------------------------------------------------------
 
 #ifndef FILEIO_VEHICLERECORD_H
 #define FILEIO_VEHICLERECORD_H
 
-#include "VehicleRecord.hpp"
+#include "VehicleRecord.hpp" // This already defines VEH_LIC_CHARS, VEH_PHONE_CHARS, VEH_REC_BYTES
 #include <string>
 
-namespace FerrySys {
+namespace FerrySys
+{
 
 class FileIO_VehicleRecord
 {
 public:
-    //------------------------------------------------------------
-    // Appends a new vehicle record to vehicles.dat
-    // Returns true on success, false if write failed.
-    static bool writeVehicle(
-        const VehicleRecord &vehicle   // IN : fully populated vehicle record
-    );
+    // Append a new vehicle record to vehicles.dat
+    static bool writeVehicle(const VehicleRecord &vehicle);
 
-    //------------------------------------------------------------
-    // Finds a vehicle by license plate.
-    // Returns true if found and fills 'result', false otherwise.
-    static bool findVehicle(
-        const std::string &license,   // IN  : vehicle license (PK)
-        VehicleRecord      &result    // OUT : decoded vehicle info
-    );
+    // Find a vehicle by license plate (returns decoded record in result)
+    static bool findVehicle(const std::string &license, VehicleRecord &result);
 
-    //------------------------------------------------------------
-    // Checks if a vehicle with the given license exists.
-    // Returns true if found, false otherwise.
-    static bool vehicleExists(
-        const std::string &license    // IN : license plate (PK)
-    );
+    // Check if vehicle exists by license
+    static bool vehicleExists(const std::string &license);
 
-    //------------------------------------------------------------
-    // Deletes a vehicle record by license plate.
-    // Rewrites file without matching record.
-    // Returns true if deleted, false if not found.
-    static bool deleteVehicle(
-        const std::string &license    // IN : license plate (PK)
-    );
+    // Delete a vehicle by license (safe file rewrite)
+    static bool deleteVehicle(const std::string &license);
 
-    //------------------------------------------------------------
-    // Lists all vehicles in vehicles.dat (for debugging or reporting).
-    // Simply prints each decoded record to std::cout.
+    // List all vehicles in vehicles.dat (formatted debug output)
     static void listVehicles();
 };
 

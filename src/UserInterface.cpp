@@ -436,7 +436,7 @@ void UserInterface::reservationMenu() {
             if (Reservation::deleteReservation(license, sailingID))
                 std::cout << "Reservation successfully deleted.\n";
             else
-                if (!promptYesNo("Reservation not found. Go back to form (Y/N)?")) continue;
+                if (!promptYesNo("License Plate isn’t reserved on this sailing. Do you wish to modify it(Y/N)?")) continue;
         }
 
         // CHECK-IN VEHICLES

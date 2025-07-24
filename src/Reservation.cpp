@@ -90,6 +90,15 @@ bool Reservation::newCustomerReservation(const FerrySys::VehicleRecord &vehicle,
     if (!canBookSailing(vehicle, sailingID, useHCL))
         return false;
 
+    // Save vehicle to vehicles.dat if not already saved
+    if (!FerrySys::FileIO_VehicleRecord::vehicleExists(vehicle.license))
+    {
+        if (!FerrySys::FileIO_VehicleRecord::writeVehicle(vehicle))
+        {
+          //  std::cerr << "Error: Could not save vehicle record.\n";
+            return false;
+        }
+    }
     // Write reservation
     if (!FileIO_Reservations::writeReservation(vehicle.license, sailingID))
         return false;

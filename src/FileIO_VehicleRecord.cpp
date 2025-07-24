@@ -1,35 +1,32 @@
-//************************************************************
-//************************************************************
-//  FileIO_VehicleRecord.cpp
-//  CMPT 276 – Assignment 4 (Fahad Y)
-//    Implements file I/O operations for vehicle records,
-//    supporting creation, lookup, listing, and deletion.
+// ---------------------------------------------------------------------------
+// FileIO_VehicleRecord.cpp
+// CMPT 276 – Assignment 4 (Fahad Y)
 //
-//    • Encodes/decodes VehicleRecord to fixed-length binary
-//    • Appends new vehicles to vehicles.dat
-//    • Supports searching and deleting vehicles by license
-//    • Provides debug listing of all vehicles
-//************************************************************
-//************************************************************
+// Implements binary I/O for vehicle records using fixed-length encoding.
+// Uses helpers from VehicleRecord.hpp for license padding and full record
+// encode/decode. Ensures safe deletion and consistent formatting.
+// ---------------------------------------------------------------------------
 
 #include "FileIO_VehicleRecord.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <cstring>
+#include <cstdio> // for remove, rename
 
-namespace FerrySys {
+namespace FerrySys
+{
 
-// ---------------------------------------------------------------------------
-// Append new vehicle to vehicles.dat
-// ---------------------------------------------------------------------------
+// ============================================================
+// Append new vehicle record to vehicles.dat
+// ============================================================
 bool FileIO_VehicleRecord::writeVehicle(const VehicleRecord &vehicle)
 {
     VehicleRaw raw{};
-    encodeVehicle(vehicle, raw);
+    encodeVehicle(vehicle, raw); // Encode full record (license, phone, dims)
 
     std::ofstream file("vehicles.dat", std::ios::binary | std::ios::app);
-    if (!file) {
+    if (!file)
+    {
         std::cerr << "Error: Could not open vehicles.dat for writing.\n";
         return false;
     }
@@ -38,43 +35,49 @@ bool FileIO_VehicleRecord::writeVehicle(const VehicleRecord &vehicle)
     return true;
 }
 
-// ---------------------------------------------------------------------------
-// Find vehicle by license and load into result
-// ---------------------------------------------------------------------------
-bool FileIO_VehicleRecord::findVehicle(const std::string &license, VehicleRecord &result)
+// ============================================================
+// Find vehicle by license plate
+// ============================================================
+bool FileIO_VehicleRecord::findVehicle(const std::string &license,
+                                       VehicleRecord &result)
 {
     std::ifstream file("vehicles.dat", std::ios::binary);
-    if (!file) return false;
+    if (!file)
+        return false;
 
     VehicleRaw raw{};
-    while (file.read(reinterpret_cast<char*>(raw.data()), VEH_REC_BYTES)) {
+    while (file.read(reinterpret_cast<char*>(raw.data()), VEH_REC_BYTES))
+    {
         VehicleRecord temp;
         decodeVehicle(raw, temp);
 
-        if (temp.license == license) {
+        if (temp.license == license)
+        {
             result = temp;
             return true;
         }
     }
+
     return false;
 }
 
-// ---------------------------------------------------------------------------
-// Check if a vehicle exists by license
-// ---------------------------------------------------------------------------
+// ============================================================
+// Check if vehicle exists by license
+// ============================================================
 bool FileIO_VehicleRecord::vehicleExists(const std::string &license)
 {
     VehicleRecord temp;
     return findVehicle(license, temp);
 }
 
-// ---------------------------------------------------------------------------
-// List all vehicles (formatted table output for debugging/reporting)
-// ---------------------------------------------------------------------------
+// ============================================================
+// List all vehicles in vehicles.dat (formatted for debugging)
+// ============================================================
 void FileIO_VehicleRecord::listVehicles()
 {
     std::ifstream file("vehicles.dat", std::ios::binary);
-    if (!file) {
+    if (!file)
+    {
         std::cout << "No vehicle records found.\n";
         return;
     }
@@ -88,7 +91,8 @@ void FileIO_VehicleRecord::listVehicles()
     std::cout << "------------------------------------------------------------\n";
 
     VehicleRaw raw{};
-    while (file.read(reinterpret_cast<char*>(raw.data()), VEH_REC_BYTES)) {
+    while (file.read(reinterpret_cast<char*>(raw.data()), VEH_REC_BYTES))
+    {
         VehicleRecord vehicle;
         decodeVehicle(raw, vehicle);
 
@@ -98,30 +102,37 @@ void FileIO_VehicleRecord::listVehicles()
                   << std::setw(10) << vehicle.height_cm
                   << (vehicle.isSpecial() ? "Special (HCL)" : "Standard (LCL)") << "\n";
     }
+
     std::cout << "------------------------------------------------------------\n";
 }
 
-// ---------------------------------------------------------------------------
-// Delete vehicle by rewriting file without the target record
-// ---------------------------------------------------------------------------
+// ============================================================
+// Delete vehicle by rewriting file without target record
+// ============================================================
 bool FileIO_VehicleRecord::deleteVehicle(const std::string &license)
 {
     std::ifstream file("vehicles.dat", std::ios::binary);
-    if (!file) return false;
+    if (!file)
+        return false;
 
     std::ofstream temp("temp.dat", std::ios::binary);
-    if (!temp) return false;
+    if (!temp)
+        return false;
 
     VehicleRaw raw{};
     bool found = false;
 
-    while (file.read(reinterpret_cast<char*>(raw.data()), VEH_REC_BYTES)) {
+    while (file.read(reinterpret_cast<char*>(raw.data()), VEH_REC_BYTES))
+    {
         VehicleRecord vehicle;
         decodeVehicle(raw, vehicle);
 
-        if (vehicle.license == license) {
-            found = true; // Skip this record (delete)
-        } else {
+        if (vehicle.license == license)
+        {
+            found = true; // Skip this record (delete it)
+        }
+        else
+        {
             temp.write(reinterpret_cast<const char*>(raw.data()), VEH_REC_BYTES);
         }
     }
@@ -129,8 +140,15 @@ bool FileIO_VehicleRecord::deleteVehicle(const std::string &license)
     file.close();
     temp.close();
 
-    std::remove("vehicles.dat");
-    std::rename("temp.dat", "vehicles.dat");
+    if (found)
+    {
+        std::remove("vehicles.dat");
+        std::rename("temp.dat", "vehicles.dat");
+    }
+    else
+    {
+        std::remove("temp.dat");
+    }
 
     return found;
 }
