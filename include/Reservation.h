@@ -1,88 +1,63 @@
 //************************************************************
 //************************************************************
 //  Reservation.h
+//  CMPT 276 – Assignment 4(Fahad Y)
+//    Declares the Reservation class, which implements the core
+//    business logic for managing vehicle reservations on sailings.
+//    This includes creating reservations for new or returning
+//    customers, deleting reservations, and checking vehicles in.
+
+//    • Validate vehicle and sailing IDs before reservation actions.
+//    • Differentiate new vs returning customer workflows.
+//    • Manage reservation lifecycle (create, delete, check-in).
+//    • Provide utilities for checking existence of vehicles or sailings.
 //************************************************************
 //************************************************************
+
 #ifndef RESERVATION_H
 #define RESERVATION_H
 
-#include "CommonTypes.h"
 #include <string>
+#include "CommonTypes.h"
+#include "VehicleRecord.hpp"  // for VehicleRecord type
 
 class Reservation
 {
 public:
-//------------------------------------------------------------
-// Books a reservation for a brand-new customer.
-// Preconditions : licence not already stored.
-// Postconditions: vehicle record + reservation saved.
+    // New customer reservation
     static bool newCustomerReservation(
-        const std::string &licencePlate,  // IN  : vehicle licence
-        const std::string &phoneNumber,   // IN  : customer phone
-        bool               isSpecial,     // IN  : special-vehicle flag
-        SailingID          sailingId      // IN  : sailing requested
+        const FerrySys::VehicleRecord &vehicle,  //IN:vehicle record
+        SailingID sailingID                     //IN:SailingID
     );
 
-//------------------------------------------------------------
-// Books a reservation for an existing customer.
-// Preconditions : vehicle already on file.
-// Postconditions: reservation saved.
+    // Returning customer reservation
     static bool returningCustomerReservation(
-        const std::string &licencePlate,  // IN  : vehicle licence
-        SailingID          sailingId      // IN  : sailing requested
+        const std::string &licensePlate,          //IN:LicensePlate
+        SailingID sailingID                       //IN:sailingID
     );
 
-//------------------------------------------------------------
-// Deletes a reservation.
-// Preconditions : reservation exists.
-// Postconditions: record removed and space counter updated.
+    // Delete reservation
     static bool deleteReservation(
-        ReservationID      reservationId  // IN  : reservation to delete
+        const std::string &licensePlate,         //IN:LicensePlate
+        SailingID sailingID                      //IN:sailingID
     );
 
-//------------------------------------------------------------
-// Marks a vehicle as checked-in.
-// Preconditions : matching reservation exists.
-// Postconditions: check-in flag set.
+    // Check-in vehicle
     static bool checkinVehicle(
-        const std::string &licencePlate,  // IN  : vehicle licence
-        SailingID          sailingId      // IN  : sailing booked
+        const std::string &licensePlate,         //IN:LicensePlate
+        SailingID sailingID                      //IN:sailingID
     );
 
-//------------------------------------------------------------
-// True if vehicle already exists in system.
-// Preconditions : none
-// Postconditions: none
+    // Utilities
     static bool isVehicleExist(
-        const std::string &licencePlate   // IN  : licence to search
+        const std::string &licensePlate         //IN:LicensePlate
     );
 
-//------------------------------------------------------------
-// True if sailingId exists and has capacity.
-// Preconditions : none
-// Postconditions: none
     static bool isSailingIDExist(
-        SailingID          sailingId      // IN  : id to search
+        SailingID sailingID                      //IN:sailingID
     );
 
-//------------------------------------------------------------
-// Decrements space available on a sailing (after successful reservation).
-// Preconditions : sailingId valid and spaceAvailable>0.
-// Postconditions: counter decremented.
-    static void decreaseSpaceAvailable(
-        SailingID          sailingId      // IN/OUT : sailing affected
-    );
-
-//------------------------------------------------------------
-// Opens reservation file and prepares in-memory caches.
-// Preconditions : called once at startup.
-// Postconditions: ready for reservation ops.
     static void initialize();
-
-//------------------------------------------------------------
-// Flushes caches and closes reservation file.
-// Preconditions : called once at shutdown.
-// Postconditions: all updates persisted.
     static void shutdown();
 };
 

@@ -1,39 +1,35 @@
-//************************************************************
-//************************************************************
-//  Sailing.h
-//************************************************************
-//************************************************************
 #ifndef SAILING_H
 #define SAILING_H
 
-#include "CommonTypes.h"
 #include <string>
+#include "CommonTypes.h"
+
+enum class SailingStatus {
+    SUCCESS,
+    VESSEL_NOT_FOUND,
+    SAILING_ALREADY_EXISTS
+};
 
 class Sailing
 {
 public:
-//------------------------------------------------------------
-    static bool CreateSailing(
-         std::string arrivalCity,   // IN  : port of arrival
-         std::string vesselName,    // IN  : vessel assigned
-         std::string dateISO,       // IN  : "YYYY-MM-DD"
-         std::string timeHHMM       // IN  : "HHMM"
+    static SailingStatus CreateSailing(
+        const std::string &ArrivalCity,         //IN:Arrival City
+        const std::string &VesselName,          //IN:Vessel Name
+        const std::string &Date,                //IN:Date
+        const std::string &Time                 //IN:Time
     );
-//------------------------------------------------------------
-    static bool DeleteSailing(
-        SailingID          sailingId      // IN  : sailing to delete
-    );
-//------------------------------------------------------------
-    static void printStatus(
-        SailingID          sailingId      // IN  : sailing to report
-    );
-//------------------------------------------------------------
-    static void printReport();            // Prints 28-day report
-//------------------------------------------------------------
-    static bool isSailingExist( SailingID sailingId );
-    static bool isVesselExist ( const std::string &vesselName );
 
-//------------------------------------------------------------
+    static bool DeleteSailing(
+        SailingID sailingID                     //IN:SailingID
+    );
+
+    static bool printStatus(
+        SailingID sailingID                      //IN:SailingID
+    );
+
+    static void printReport();
+
     static void initialize();
     static void shutdown();
 };

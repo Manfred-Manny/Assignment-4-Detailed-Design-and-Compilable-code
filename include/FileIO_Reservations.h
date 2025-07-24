@@ -1,74 +1,88 @@
-//************************************************************
-//************************************************************
-//  FileIO_Reservations.h
-//  Low-level binary I/O for reservation records
-//************************************************************
-//************************************************************
+// ---------------------------------------------------------------------------
+// FileIO_Reservations.h
+// CMPT 276 – Assignment 4 (Fahad Y)
+//
+// PURPOSE:
+//    Provides low-level binary file operations for managing ferry reservations.
+//    Each reservation links a vehicle (license plate) to a specific sailing ID
+//    and optionally tracks check-in status.
+//
+// DESIGN NOTES:
+//    • Records are stored as fixed-length binary blocks.
+//    • Searching and deletions use linear scans.
+//    • Higher-level validation and business logic reside outside this class.
+// ---------------------------------------------------------------------------
+
 #ifndef FILEIO_RESERVATIONS_H
 #define FILEIO_RESERVATIONS_H
 
-#include <fstream>
 #include <string>
 #include "CommonTypes.h"
+
+// ---------------------------------------------------------------------------
+// Binary reservation record structure
+// ---------------------------------------------------------------------------
+struct ReservationRec {
+    char licenseplate[10];  // Fixed-length (10 chars), space-padded
+    SailingID sailingID;    // Associated sailing ID
+    bool checkedIn;         // Check-in status
+};
 
 class FileIO_Reservations
 {
 public:
-//------------------------------------------------------------
-// Positions file pointer at first reservation record.
-// Preconditions : none
-// Postconditions: ready for sequential reads.
+    //------------------------------------------------------------
+    // Reset sequential read pointer (not heavily used).
     static void reset();
 
-//------------------------------------------------------------
-// Reads next reservation record from file.
-// Preconditions : reset() already called.
-// Postconditions: returns true if fields populated, false on EOF.
-    static bool getNextVehicle(
-        std::string      &licencePlate,   // OUT : licence (max 10)
-        std::string      &phoneNumber,    // OUT : phone (14 chars)
-        bool             &isSpecial,      // OUT : high-clearance flag
-        SailingID        &sailingId,      // OUT : sailing booked
-        ReservationID    &reservationId   // OUT : unique reservation PK
+    //------------------------------------------------------------
+    // Retrieve next reservation sequentially.
+    // Returns true if record read successfully, false at EOF.
+    static bool getNextReservation(
+        std::string &licensePlate,  // OUT: vehicle license
+        SailingID   &sailingID,     // OUT: sailing ID
+        bool        &checkedIn      // OUT: check-in status
     );
 
-//------------------------------------------------------------
-// Appends a brand-new reservation record.
-// Preconditions : caller validated data.
-// Postconditions: record written at end-of-file.
-    static void writeReservation(
-        const std::string &licencePlate,  // IN  : vehicle licence
-        const std::string &phoneNumber,   // IN  : phone number E164
-        bool               isSpecial,     // IN  : high-clearance flag
-        SailingID          sailingId,     // IN  : sailing booked
-        ReservationID      reservationId  // IN  : generated PK
+    //------------------------------------------------------------
+    // Append new reservation (license + sailing).
+    static bool writeReservation(
+        const std::string &licensePlate,  // IN: vehicle license
+        SailingID sailingID               // IN: sailing ID
     );
 
-//------------------------------------------------------------
-// Flags an existing reservation as checked-in.
-// Preconditions : matching record exists.
-// Postconditions: check-in byte toggled.
-// Returns      : true on success, false if not found.
+    //------------------------------------------------------------
+    // Mark an existing reservation as checked-in.
     static bool writeCheckin(
-        ReservationID      reservationId  // IN  : reservation to mark
+        const std::string &licensePlate,  // IN: vehicle license
+        SailingID sailingID               // IN: sailing ID
     );
 
-//------------------------------------------------------------
-// Deletes a reservation (logical delete).
-// Preconditions : reservation is valid.
-// Postconditions: record flagged as free.
-// Returns      : true on success, false if not found.
-    static bool deleteRes(
-        ReservationID      reservationId  // IN  : reservation to delete
+    //------------------------------------------------------------
+    // Delete a specific reservation.
+    // Returns true if deleted, false if not found.
+    static bool deleteReservation(
+        const std::string &licensePlate,  // IN: vehicle license
+        SailingID sailingID               // IN: sailing ID
     );
 
-//------------------------------------------------------------
-// Counts remaining spaces on the given sailing.
-// Preconditions : sailingId valid.
-// Postconditions: none.
-// Returns      : available count, −1 on error.
+    //------------------------------------------------------------
+    // Return total remaining space for a sailing (HCL + LCL).
+    // Falls back to sailing capacity if no reservations exist.
     static int spaceAvailable(
-        SailingID          sailingId      // IN  : sailing of interest
+        SailingID sailingID               // IN: sailing ID
+    );
+
+    //------------------------------------------------------------
+    // Count number of reservations on a given sailing.
+    static int countReservationsForSailing(
+        SailingID sailingID               // IN: sailing ID
+    );
+
+    //------------------------------------------------------------
+    // Delete all reservations for a specific sailing (cascade delete).
+    static bool deleteReservationsBySailing(
+        SailingID sailingID               // IN: sailing ID
     );
 };
 

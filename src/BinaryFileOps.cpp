@@ -15,6 +15,8 @@
 #include "BinaryFileOps.hpp"
 
 #include <fstream>
+#include <functional>
+#include <filesystem>
 #include <filesystem>
 #include <vector>
 #include <cassert>

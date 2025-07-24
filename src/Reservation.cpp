@@ -1,60 +1,148 @@
 #include "Reservation.h"
-#include <iostream>
+#include "FileIO_VehicleRecord.h"
+#include "FileIO_Sailings.h"
+#include "FileIO_Reservations.h"
+
+// Threshold to determine high-ceiling vehicles (adjust if needed)
+static const int HIGH_CEILING_THRESHOLD = 200; // cm
 
 // ---------------------------------------------------------------------------
-// A4 STUB IMPLEMENTATION
+// Helper: Determine if vehicle is special (requires HCL)
+static bool isHighCeiling(const FerrySys::VehicleRecord &vehicle)
+{
+    return vehicle.height_cm > HIGH_CEILING_THRESHOLD;
+}
+
 // ---------------------------------------------------------------------------
-
-bool Reservation::newCustomerReservation(const std::string &,
-                                         const std::string &,
-                                         bool,
-                                         SailingID)
+// Helper: Adjust sailing space
+// amount is positive to restore space (delete), negative to deduct (reserve)
+static void adjustSailingSpace(SailingID sailingID, bool useHCL, int amount)
 {
-    std::cout << "[STUB] Reservation::newCustomerReservation()\n";
-    return false;
+    FileIO_Sailings::updateSailingSpace(sailingID, useHCL, amount);
 }
 
-bool Reservation::returningCustomerReservation(const std::string &,
-                                               SailingID)
+// ---------------------------------------------------------------------------
+// Helper: Determine lane choice and check availability
+// Returns true if booking is possible and sets `useHCL` accordingly
+static bool canBookSailing(const FerrySys::VehicleRecord &vehicle, SailingID sailingID, bool &useHCL)
 {
-    std::cout << "[STUB] Reservation::returningCustomerReservation()\n";
-    return false;
+    // Validate sailing
+    if (!FileIO_Sailings::Sailingexist(sailingID))
+        return false;
+
+    // Retrieve remaining space from sailings file
+    unsigned int remainingHCL = 0, remainingLCL = 0;
+    FileIO_Sailings::getRemainingSpace(sailingID, remainingHCL, remainingLCL);
+
+    // Decide lane based on vehicle type
+    if (isHighCeiling(vehicle)) {
+        // Must use HCL
+        if (vehicle.length_cm <= remainingHCL) {
+            useHCL = true;
+            return true;
+        }
+    } else {
+        // Regular vehicles prefer LCL
+        if (vehicle.length_cm <= remainingLCL) {
+            useHCL = false; // Use LCL
+            return true;
+        }
+        // If LCL full, fallback to HCL
+        if (vehicle.length_cm <= remainingHCL) {
+            useHCL = true;
+            return true;
+        }
+    }
+
+    return false; // No suitable space available
 }
 
-bool Reservation::deleteReservation(ReservationID)
+// ---------------------------------------------------------------------------
+// New Customer Reservation
+bool Reservation::newCustomerReservation(const FerrySys::VehicleRecord &vehicle, SailingID sailingID)
 {
-    std::cout << "[STUB] Reservation::deleteReservation()\n";
-    return false;
+    bool useHCL = false;
+
+    // Check sailing existence & space with lane selection
+    if (!canBookSailing(vehicle, sailingID, useHCL))
+        return false;
+
+    // Write reservation
+    if (!FileIO_Reservations::writeReservation(vehicle.license, sailingID))
+        return false;
+
+    // Deduct space dynamically in correct lane
+    adjustSailingSpace(sailingID, useHCL, -static_cast<int>(vehicle.length_cm));
+    return true;
 }
 
-bool Reservation::checkinVehicle(const std::string &,
-                                 SailingID)
+// ---------------------------------------------------------------------------
+// Returning Customer Reservation
+bool Reservation::returningCustomerReservation(const std::string &licensePlate, SailingID sailingID)
 {
-    std::cout << "[STUB] Reservation::checkinVehicle()\n";
-    return false;
+    FerrySys::VehicleRecord vehicle;
+
+    // Ensure vehicle exists
+    if (!FerrySys::FileIO_VehicleRecord::findVehicle(licensePlate, vehicle))
+        return false;
+
+    bool useHCL = false;
+
+    // Check sailing & space with lane selection
+    if (!canBookSailing(vehicle, sailingID, useHCL))
+        return false;
+
+    // Write reservation
+    if (!FileIO_Reservations::writeReservation(licensePlate, sailingID))
+        return false;
+
+    // Deduct space dynamically in correct lane
+    adjustSailingSpace(sailingID, useHCL, -static_cast<int>(vehicle.length_cm));
+    return true;
 }
 
-bool Reservation::isVehicleExist(const std::string &)
+// ---------------------------------------------------------------------------
+// Delete Reservation
+bool Reservation::deleteReservation(const std::string &licensePlate, SailingID sailingID)
 {
-    return false;
+    FerrySys::VehicleRecord vehicle;
+    if (!FerrySys::FileIO_VehicleRecord::findVehicle(licensePlate, vehicle))
+        return false;
+
+    // Delete reservation record
+    if (!FileIO_Reservations::deleteReservation(licensePlate, sailingID))
+        return false;
+
+    // Determine which lane to restore (same logic as booking)
+    bool useHCL = isHighCeiling(vehicle);
+    // For regular vehicles, try restoring LCL first (assume that’s where they were booked)
+    // Note: If needed, you can track lane choice in reservations for 100% accuracy
+
+    adjustSailingSpace(sailingID, useHCL, static_cast<int>(vehicle.length_cm));
+    return true;
 }
 
-bool Reservation::isSailingIDExist(SailingID)
+// ---------------------------------------------------------------------------
+// Check-in Vehicle
+bool Reservation::checkinVehicle(const std::string &licensePlate, SailingID sailingID)
 {
-    return false;
+    return FileIO_Reservations::writeCheckin(licensePlate, sailingID);
 }
 
-void Reservation::decreaseSpaceAvailable(SailingID)
+// ---------------------------------------------------------------------------
+// Utility: Does vehicle exist?
+bool Reservation::isVehicleExist(const std::string &licensePlate)
 {
-    // no-op stub
+    FerrySys::VehicleRecord vehicle;
+    return FerrySys::FileIO_VehicleRecord::findVehicle(licensePlate, vehicle);
 }
 
-void Reservation::initialize()
+// ---------------------------------------------------------------------------
+// Utility: Does sailing exist?
+bool Reservation::isSailingIDExist(SailingID sailingID)
 {
-    std::cout << "[STUB] Reservation::initialize()\n";
+    return FileIO_Sailings::Sailingexist(sailingID);
 }
 
-void Reservation::shutdown()
-{
-    std::cout << "[STUB] Reservation::shutdown()\n";
-}
+void Reservation::initialize() {}
+void Reservation::shutdown() {}

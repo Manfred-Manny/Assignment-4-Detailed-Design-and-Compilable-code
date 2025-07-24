@@ -1,26 +1,22 @@
-//************************************************************
-//************************************************************
-//  UserInterface.h
-//  High-level menu presentation & input validation
-//************************************************************
-//************************************************************
 #ifndef USERINTERFACE_H
 #define USERINTERFACE_H
 
-class UserInterface
-{
+class UserInterface {
 public:
-//------------------------------------------------------------
-// Initialises UI state (loads language strings, clears screen).
-// Preconditions : none
-// Postconditions: ready for menu loop.
+    // Initializes UI system
     static void initialize();
 
-//------------------------------------------------------------
-// Flushes any UI caches, restores terminal state.
-// Preconditions : initialize() previously called.
-// Postconditions: console left tidy.
+    // Runs main menu loop
+    static void runMainMenu();
+
+    // Cleans up UI system
     static void shutdown();
+
+private:
+    // Submenus for different modules
+    static void vesselMenu();
+    static void sailingMenu();
+    static void reservationMenu();
 };
 
-#endif // USERINTERFACE_H
+#endif

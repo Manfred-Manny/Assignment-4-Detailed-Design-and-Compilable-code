@@ -32,9 +32,7 @@ namespace FerrySys
     }
 
     // Copy src into dest field (space-pad; truncate if longer).
-    static void copyFieldSpacePad(std::string_view src,
-                                  unsigned char *dest,
-                                  std::size_t fieldLen) noexcept
+    static void copyFieldSpacePad(std::string_view src,unsigned char *dest,std::size_t fieldLen) noexcept
     {
         // copy up to fieldLen bytes
         std::size_t n = (src.size() < fieldLen) ? src.size() : fieldLen;
@@ -50,8 +48,7 @@ namespace FerrySys
     }
 
     // Read fieldLen bytes, build std::string, trim spaces.
-    static std::string extractFieldTrim(const unsigned char *src,
-                                        std::size_t fieldLen)
+    static std::string extractFieldTrim(const unsigned char *src,std::size_t fieldLen)
     {
         std::string out(reinterpret_cast<const char*>(src), fieldLen);
         rtrimSpaces(out);
