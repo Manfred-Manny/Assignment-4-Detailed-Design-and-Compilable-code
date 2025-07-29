@@ -1,6 +1,23 @@
+//************************************************************
+//************************************************************
+//  UserInterface.cpp
+//  CMPT 276 – Assignment 4 (Fahad Y)
+//
+//  Implements the UserInterface class for the ferry reservation
+//  system. Handles all menu navigation, user prompts, and input
+//  validation (with support for "0 = Cancel").
+//
+//  • Main menu and submenus: Vessel, Sailing, Reservation
+//  • Input helpers for codes, dates, dimensions, phone, license
+//  • Prompts user confirmations (Y/N)
+//************************************************************
+//************************************************************
+
 #include <iostream>
 #include <string>
 #include <limits>
+#include <algorithm>
+#include <cctype>
 #include "UserInterface.h"
 #include "Vessel.h"
 #include "Sailing.h"
@@ -8,19 +25,23 @@
 #include "FileIO_Sailings.h"
 #include "FileIO_Reservations.h"
 #include "FileIO_VehicleRecord.h"
-#include <cctype>   
-#include <algorithm> 
 
-//=====================================================
-// HELPER FUNCTIONS
-//=====================================================
-void UserInterface::clearInput() {
+// ============================================================
+// Helper: Clear input buffer
+// ============================================================
+void UserInterface::clearInput()
+{
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-bool UserInterface::promptYesNo(const std::string &message) {
+// ============================================================
+// Helper: Prompt Yes/No with 0 = cancel
+// ============================================================
+bool UserInterface::promptYesNo(const std::string &message)
+{
     std::string input;
-    while (true) {
+    while (true)
+    {
         std::cout << message << " [Y/N or 0 = Cancel]: ";
         std::getline(std::cin, input);
 
@@ -28,31 +49,39 @@ bool UserInterface::promptYesNo(const std::string &message) {
         if (input == "Y" || input == "y") return true;
         if (input == "N" || input == "n") return false;
 
-        std::cout << "Invalid input. Enter Y, N or 0.\n";
+        std::cout << "Invalid input. Enter Y, N, or 0.\n";
     }
 }
 
-std::string UserInterface::getVesselName() {
+// ============================================================
+// Input Helpers (all support 0 = Cancel)
+// ============================================================
+std::string UserInterface::getVesselName()
+{
     std::string name;
-    while (true) {
+    while (true)
+    {
         std::cout << "Vessel Name (max 25 chars) [0 = Cancel]: ";
         std::getline(std::cin, name);
 
         if (name == "0") return "";
         if (!name.empty() && name.length() <= 25) return name;
 
-        std::cout << "Error: Must be 1-25 characters.\n";
+        std::cout << "Error: Must be 1–25 characters.\n";
     }
 }
 
-unsigned int UserInterface::getLaneLength(const std::string &label) {
+unsigned int UserInterface::getLaneLength(const std::string &label)
+{
     std::string input;
-    while (true) {
+    while (true)
+    {
         std::cout << label << " (4 digits max) [0 = Cancel]: ";
         std::getline(std::cin, input);
 
         if (input == "0") return 0;
-        if (!input.empty() && input.find_first_not_of("0123456789") == std::string::npos) {
+        if (!input.empty() && input.find_first_not_of("0123456789") == std::string::npos)
+        {
             unsigned int value = std::stoi(input);
             if (value <= 9999) return value;
         }
@@ -60,40 +89,41 @@ unsigned int UserInterface::getLaneLength(const std::string &label) {
     }
 }
 
-std::string UserInterface::getCityCode() {
+std::string UserInterface::getCityCode()
+{
     std::string city;
-    while (true) {
-        std::cout << "What is the City of Arrival (3 letter abbreviation) [0 = Cancel]: ";
+    while (true)
+    {
+        std::cout << "Arrival City (3-letter code) [0 = Cancel]: ";
         std::getline(std::cin, city);
+
         if (city == "0") return "";
         if (city.length() == 3) return city;
+
         std::cout << "Error: Must be 3 letters.\n";
     }
 }
 
-
-
-std::string UserInterface::getDate() {
+std::string UserInterface::getDate()
+{
     std::string date;
-
-    while (true) {
-        std::cout << "Date of Departure (YY-MM-DD format) [0 = Cancel]: ";
+    while (true)
+    {
+        std::cout << "Date of Departure (YY-MM-DD) [0 = Cancel]: ";
         std::getline(std::cin, date);
 
-        // Remove all spaces
+        // Strip spaces
         date.erase(std::remove_if(date.begin(), date.end(), ::isspace), date.end());
 
-        // Cancel
-        if (date == "0")
-            return "";
+        if (date == "0") return "";
 
-        // Validate format YY-MM-DD
-        if (date.length() == 8 && date[2] == '-' && date[5] == '-') {
-            // Ensure digits are in correct positions
+        if (date.length() == 8 && date[2] == '-' && date[5] == '-')
+        {
             if (isdigit(date[0]) && isdigit(date[1]) &&
                 isdigit(date[3]) && isdigit(date[4]) &&
-                isdigit(date[6]) && isdigit(date[7])) {
-                return date; // valid date
+                isdigit(date[6]) && isdigit(date[7]))
+            {
+                return date;
             }
         }
 
@@ -101,85 +131,101 @@ std::string UserInterface::getDate() {
     }
 }
 
-
-std::string UserInterface::getTime() {
+std::string UserInterface::getTime()
+{
     std::string time;
-    while (true) {
-        std::cout << "Time of Departure (HHMM 24hr Clock) [0 = Cancel]: ";
+    while (true)
+    {
+        std::cout << "Time of Departure (HHMM 24hr) [0 = Cancel]: ";
         std::getline(std::cin, time);
 
         time.erase(std::remove_if(time.begin(), time.end(), ::isspace), time.end());
 
-        if (time == "0")
-            return "";
+        if (time == "0") return "";
 
-        if (time.length() == 4 &&
-            std::all_of(time.begin(), time.end(), ::isdigit)) {
+        if (time.length() == 4 && std::all_of(time.begin(), time.end(), ::isdigit))
             return time;
-        }
 
         std::cout << "Error: Must be 4-digit 24hr time (e.g., 0930).\n";
     }
 }
 
-
-std::string UserInterface::getSailingID() {
+std::string UserInterface::getSailingID()
+{
     std::string id;
-    while (true) {
+    while (true)
+    {
         std::cout << "Sailing ID (ttt:dd:hh) [0 = Cancel]: ";
         std::getline(std::cin, id);
+
         if (id == "0") return "";
         if (id.length() == 9 && id[3] == ':' && id[6] == ':') return id;
+
         std::cout << "Error: Must be in ttt:dd:hh format.\n";
     }
 }
 
-std::string UserInterface::getPhoneNumber() {
+std::string UserInterface::getPhoneNumber()
+{
     std::string phone;
-    while (true) {
+    while (true)
+    {
         std::cout << "Phone (999-999-9999) [0 = Cancel]: ";
         std::getline(std::cin, phone);
+
         if (phone == "0") return "";
         if (phone.length() == 12 && phone[3] == '-' && phone[7] == '-') return phone;
+
         std::cout << "Error: Must be in 999-999-9999 format.\n";
     }
 }
 
-std::string UserInterface::getLicensePlate() {
+std::string UserInterface::getLicensePlate()
+{
     std::string plate;
-    while (true) {
+    while (true)
+    {
         std::cout << "License Plate (max 10) [0 = Cancel]: ";
         std::getline(std::cin, plate);
+
         if (plate == "0") return "";
         if (!plate.empty() && plate.length() <= 10) return plate;
-        std::cout << "Error: Must be 1-10 characters.\n";
+
+        std::cout << "Error: Must be 1–10 characters.\n";
     }
 }
 
-unsigned int UserInterface::getDimension(const std::string &label) {
+unsigned int UserInterface::getDimension(const std::string &label)
+{
     std::string input;
-    while (true) {
+    while (true)
+    {
         std::cout << label << " (cm) [0 = Cancel]: ";
         std::getline(std::cin, input);
+
         if (input == "0") return 0;
         if (!input.empty() && input.find_first_not_of("0123456789") == std::string::npos)
             return std::stoi(input);
+
         std::cout << "Error: Enter numeric value.\n";
     }
 }
 
-//=====================================================
-// INITIALIZATION
-//=====================================================
-void UserInterface::initialize() {
+// ============================================================
+// Initialization
+// ============================================================
+void UserInterface::initialize()
+{
     std::cout << "User Interface Initialized.\n";
 }
 
-//=====================================================
-// MAIN MENU
-//=====================================================
-void UserInterface::runMainMenu() {
-    while (true) {
+// ============================================================
+// Main Menu
+// ============================================================
+void UserInterface::runMainMenu()
+{
+    while (true)
+    {
         std::cout << "\n--- MAIN MENU ---\n"
                   << "1) Vessel Maintenance\n"
                   << "2) Sailing Maintenance\n"
@@ -192,7 +238,8 @@ void UserInterface::runMainMenu() {
         std::cin >> choice;
         clearInput();
 
-        switch (choice) {
+        switch (choice)
+        {
             case 0:
                 std::cout << "Thank you for using the Ferry Reservation System.\n";
                 return;
@@ -206,11 +253,13 @@ void UserInterface::runMainMenu() {
     }
 }
 
-//=====================================================
-// VESSEL MENU
-//=====================================================
-void UserInterface::vesselMenu() {
-    while (true) {
+// ============================================================
+// Vessel Menu
+// ============================================================
+void UserInterface::vesselMenu()
+{
+    while (true)
+    {
         std::cout << "\n--- Vessel Maintenance ---\n"
                   << "1) Create New Vessel\n"
                   << "2) Delete Existing Vessel\n"
@@ -223,8 +272,10 @@ void UserInterface::vesselMenu() {
 
         if (choice == 0) break;
 
-        else if (choice == 1) {
-            while (true) {
+        else if (choice == 1)
+        {
+            while (true)
+            {
                 std::string name = getVesselName();
                 if (name.empty()) break;
 
@@ -237,42 +288,50 @@ void UserInterface::vesselMenu() {
                 if (!promptYesNo("Create Vessel Record (Y/N)?")) break;
 
                 VesselStatus status = Vessel::CreateVessel(name, hcl, lcl);
-
-                if (status == VesselStatus::SUCCESS) {
+                if (status == VesselStatus::SUCCESS)
+                {
                     std::cout << "Vessel successfully added.\n";
                     break;
-                } else if (status == VesselStatus::ALREADY_EXISTS) {
+                }
+                else if (status == VesselStatus::ALREADY_EXISTS)
+                {
                     if (!promptYesNo("The Vessel already exists. Do you wish to go back to the form (Y/N)?")) break;
                 }
             }
         }
-
-        else if (choice == 2) {
-            while (true) {
+        else if (choice == 2)
+        {
+            while (true)
+            {
                 std::string name = getVesselName();
                 if (name.empty()) break;
 
                 if (!promptYesNo("Are you sure you want to delete this vessel (Y/N)?")) break;
 
                 VesselStatus status = Vessel::DeleteVessel(name);
-
-                if (status == VesselStatus::SUCCESS) {
+                if (status == VesselStatus::SUCCESS)
+                {
                     std::cout << "Vessel successfully deleted.\n";
                     break;
-                } else {
+                }
+                else
+                {
                     if (!promptYesNo("The vessel does not exist. Do you wish to go back to the form (Y/N)?")) break;
                 }
             }
         }
-        else std::cout << "Invalid selection.\n";
+        else
+            std::cout << "Invalid selection.\n";
     }
 }
 
-//=====================================================
-// SAILING MENU
-//=====================================================
-void UserInterface::sailingMenu() {
-    while (true) {
+// ============================================================
+// Sailing Menu
+// ============================================================
+void UserInterface::sailingMenu()
+{
+    while (true)
+    {
         std::cout << "\n--- Sailing Maintenance ---\n"
                   << "1) Create New Sailing\n"
                   << "2) Delete Existing Sailing\n"
@@ -286,8 +345,10 @@ void UserInterface::sailingMenu() {
 
         if (choice == 0) break;
 
-        else if (choice == 1) {
-            while (true) {
+        else if (choice == 1)
+        {
+            while (true)
+            {
                 std::string city = getCityCode();
                 if (city.empty()) break;
 
@@ -303,27 +364,34 @@ void UserInterface::sailingMenu() {
                 if (!promptYesNo("Create Sailing (Y/N)?")) break;
 
                 SailingStatus status = Sailing::CreateSailing(city, vessel, date, time);
-                if (status == SailingStatus::SUCCESS) {
-                    // Validate lengths
-                    if (date.size() >= 8 && time.size() >= 2) {
-                        std::cout << "Sailing successfully created. The Sailing ID is " << city << ":" << date.substr(6,2) << ":" << time.substr(0,2) << "\n";
+                if (status == SailingStatus::SUCCESS)
+                {
+                    // Display generated Sailing ID
+                    if (date.size() >= 8 && time.size() >= 2)
+                    {
+                        std::cout << "Sailing successfully created. The Sailing ID is "
+                                  << city << ":" << date.substr(6, 2) << ":" << time.substr(0, 2) << "\n";
                     }
-                    else {
-                         std::cout << "Sailing successfully created, but could not generate a valid Sailing ID.\n";
+                    else
+                    {
+                        std::cout << "Sailing successfully created, but could not generate a valid Sailing ID.\n";
                     }
                     break;
-                    }
-                     else if (status == SailingStatus::VESSEL_NOT_FOUND) {
-                        if (!promptYesNo("Vessel does not exist. Do you wish to go back to the form (Y/N)?")) break;
-                    }
-                     else if (status == SailingStatus::SAILING_ALREADY_EXISTS) {
-                      if (!promptYesNo("Sailing already exists at that time. Do you wish to change the time (Y/N)?")) break;
-                    }
+                }
+                else if (status == SailingStatus::VESSEL_NOT_FOUND)
+                {
+                    if (!promptYesNo("Vessel does not exist. Do you wish to go back to the form (Y/N)?")) break;
+                }
+                else if (status == SailingStatus::SAILING_ALREADY_EXISTS)
+                {
+                    if (!promptYesNo("Sailing already exists at that time. Do you wish to change the time (Y/N)?")) break;
+                }
             }
         }
-
-        else if (choice == 2) {
-            while (true) {
+        else if (choice == 2)
+        {
+            while (true)
+            {
                 std::string id = getSailingID();
                 if (id.empty()) break;
 
@@ -331,14 +399,16 @@ void UserInterface::sailingMenu() {
 
                 if (Sailing::DeleteSailing(id))
                     std::cout << "Sailing successfully deleted.\n";
-                else {
+                else
+                {
                     if (!promptYesNo("Sailing ID does not exist. Go back to form (Y/N)?")) break;
                 }
             }
         }
-
-        else if (choice == 3) {
-            while (true) {
+        else if (choice == 3)
+        {
+            while (true)
+            {
                 std::string id = getSailingID();
                 if (id.empty()) break;
 
@@ -348,16 +418,18 @@ void UserInterface::sailingMenu() {
                 if (!promptYesNo("Check another Sailing (Y/N)?")) break;
             }
         }
-
-        else std::cout << "Invalid selection.\n";
+        else
+            std::cout << "Invalid selection.\n";
     }
 }
 
-//=====================================================
-// RESERVATION MENU
-//=====================================================
-void UserInterface::reservationMenu() {
-    while (true) {
+// ============================================================
+// Reservation Menu
+// ============================================================
+void UserInterface::reservationMenu()
+{
+    while (true)
+    {
         std::cout << "\n--- Reservations ---\n"
                   << "1) Create Reservation\n"
                   << "2) Delete Reservation\n"
@@ -371,15 +443,19 @@ void UserInterface::reservationMenu() {
 
         if (choice == 0) break;
 
-        // CREATE RESERVATION
-        else if (choice == 1) {
+        // Create Reservation
+        else if (choice == 1)
+        {
             std::cout << "1) New Customer\n2) Returning Customer\n0) Cancel\nSelect: ";
-            int sub; std::cin >> sub; clearInput();
+            int sub;
+            std::cin >> sub;
+            clearInput();
 
             if (sub == 0) continue;
 
-            // NEW CUSTOMER
-            if (sub == 1) {
+            // New Customer
+            if (sub == 1)
+            {
                 FerrySys::VehicleRecord vehicle;
                 std::string sailingID;
 
@@ -406,8 +482,9 @@ void UserInterface::reservationMenu() {
                     std::cout << "Failed to make reservation.\n";
             }
 
-            // RETURNING CUSTOMER
-            else if (sub == 2) {
+            // Returning Customer
+            else if (sub == 2)
+            {
                 std::string license = getLicensePlate();
                 if (license.empty()) continue;
 
@@ -423,8 +500,9 @@ void UserInterface::reservationMenu() {
             }
         }
 
-        // DELETE RESERVATION
-        else if (choice == 2) {
+        // Delete Reservation
+        else if (choice == 2)
+        {
             std::string sailingID = getSailingID();
             if (sailingID.empty()) continue;
 
@@ -436,12 +514,14 @@ void UserInterface::reservationMenu() {
             if (Reservation::deleteReservation(license, sailingID))
                 std::cout << "Reservation successfully deleted.\n";
             else
-                if (!promptYesNo("License Plate isn’t reserved on this sailing. Do you wish to modify it(Y/N)?")) continue;
+                if (!promptYesNo("License Plate isn’t reserved on this sailing. Do you wish to modify it (Y/N)?")) continue;
         }
 
-        // CHECK-IN VEHICLES
-        else if (choice == 3) {
-            while (true) {
+        // Check-In Vehicles
+        else if (choice == 3)
+        {
+            while (true)
+            {
                 std::string sailingID = getSailingID();
                 if (sailingID.empty()) break;
 
@@ -452,7 +532,8 @@ void UserInterface::reservationMenu() {
 
                 if (Reservation::checkinVehicle(license, sailingID))
                     std::cout << "Vehicle successfully checked-in.\n";
-                else {
+                else
+                {
                     std::cout << "Check-in failed (reservation not found).\n";
                     if (!promptYesNo("Do you wish to modify details (Y/N)?")) break;
                 }
@@ -463,9 +544,10 @@ void UserInterface::reservationMenu() {
     }
 }
 
-//=====================================================
-// SHUTDOWN
-//=====================================================
-void UserInterface::shutdown() {
+// ============================================================
+// Shutdown
+// ============================================================
+void UserInterface::shutdown()
+{
     std::cout << "User Interface Shutdown.\n";
 }
