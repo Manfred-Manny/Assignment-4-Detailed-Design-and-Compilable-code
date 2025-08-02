@@ -237,27 +237,34 @@ bool FileIO_Sailings::getRemainingSpace(
 //------------------------------------------------------------
 bool FileIO_Sailings::updateSailingSpace(
     SailingID sailingID,
-    bool isHighCeiling,
-    int amount
+    bool      isHighCeiling,
+    int       amount                // len_cm (±)
 ) {
-    std::fstream file("sailings.dat", std::ios::binary | std::ios::in | std::ios::out);
+    std::fstream file("sailings.dat",
+                      std::ios::binary | std::ios::in | std::ios::out);
     if (!file) return false;
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
         if (sanitizeCharArray(rec.id) == sailingID) {
+
+            auto adjust = [&](unsigned short &field) {
+                int tmp = static_cast<int>(field) + amount; // do signed math
+                if (tmp < 0)      tmp = 0;       // clamp lower
+                if (tmp > 65535)  tmp = 65535;   // clamp upper (ushort max)
+                field = static_cast<unsigned short>(tmp);
+            };
+
             if (isHighCeiling)
-                rec.remainingHCL += amount;
+                adjust(rec.remainingHCL);
             else
-                rec.remainingLCL += amount;
+                adjust(rec.remainingLCL);
 
-            if (rec.remainingHCL < 0) rec.remainingHCL = 0;
-            if (rec.remainingLCL < 0) rec.remainingLCL = 0;
-
-            file.seekp(-static_cast<int>(sizeof(rec)), std::ios::cur);
+            // write back current record
+            file.seekp(-static_cast<std::streamoff>(sizeof(rec)), std::ios::cur);
             file.write(reinterpret_cast<const char*>(&rec), sizeof(rec));
             return true;
         }
     }
-    return false;
+    return false; // sailingID not found
 }
