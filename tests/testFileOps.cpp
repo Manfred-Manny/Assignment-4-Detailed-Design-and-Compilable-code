@@ -72,8 +72,8 @@ static VehicleRecord makeRec(std::string lic,
     VehicleRecord vr;
     vr.license   = std::move(lic);
     vr.phone     = std::move(phone);
-    vr.length_cm = len_cm;
-    vr.height_cm = ht_cm;
+    vr.length_m = len_cm;
+    vr.height_m = ht_cm;
     return vr;
 }
 
@@ -156,11 +156,11 @@ int main()
             {
                 std::cerr << "FAIL: mismatch at index " << i << "\n"
                           << "  wrote: " << orig[i].license << ", "
-                          << orig[i].phone << ", L=" << orig[i].length_cm
-                          << ", H=" << orig[i].height_cm << "\n"
+                          << orig[i].phone << ", L=" << orig[i].length_m
+                          << ", H=" << orig[i].height_m << "\n"
                           << "   read: " << got.license << ", "
-                          << got.phone << ", L=" << got.length_cm
-                          << ", H=" << got.height_cm << "\n";
+                          << got.phone << ", L=" << got.length_m
+                          << ", H=" << got.height_m << "\n";
                 pass = false;
             }
         }

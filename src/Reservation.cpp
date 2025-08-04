@@ -20,28 +20,38 @@
 
 // ---------------------------------------------------------------------------
 // Threshold to determine high-ceiling vehicles (HCL lane requirement)
+// Now in METERS (was 200 cm previously)
 // ---------------------------------------------------------------------------
-static const int HIGH_CEILING_THRESHOLD = 200; // cm
+static const double HIGH_CEILING_THRESHOLD = 2.0; // meters
 
 // ---------------------------------------------------------------------------
-// Helper: Determine if vehicle requires HCL lane
+// Helper: Determine if vehicle requires HCL lane (now in meters)
 // ---------------------------------------------------------------------------
 static bool isHighCeiling(const FerrySys::VehicleRecord &vehicle)
 {
-    return vehicle.height_cm > HIGH_CEILING_THRESHOLD;
+    return vehicle.height_m > HIGH_CEILING_THRESHOLD;
 }
 
 // ---------------------------------------------------------------------------
 // Helper: Adjust sailing space (positive = restore, negative = reserve)
+// Passes meters directly to updateSailingSpace
 // ---------------------------------------------------------------------------
-static void adjustSailingSpace(SailingID sailingID, bool useHCL, int amount)
+static void adjustSailingSpace(SailingID sailingID,
+                               const FerrySys::VehicleRecord &vehicle,
+                               int amount)
 {
-    FileIO_Sailings::updateSailingSpace(sailingID, useHCL, amount);
+    FileIO_Sailings::updateSailingSpace(
+        sailingID,
+        static_cast<int>(vehicle.length_m), // meters now
+        static_cast<int>(vehicle.height_m), // meters now
+        amount
+    );
 }
 
 // ---------------------------------------------------------------------------
 // Helper: Determine lane choice and check availability
 // Returns true if booking is possible and sets `useHCL` accordingly
+// (This still checks space manually; fallback handled by updateSailingSpace)
 // ---------------------------------------------------------------------------
 static bool canBookSailing(const FerrySys::VehicleRecord &vehicle,
                            SailingID sailingID,
@@ -51,25 +61,25 @@ static bool canBookSailing(const FerrySys::VehicleRecord &vehicle,
     if (!FileIO_Sailings::Sailingexist(sailingID))
         return false;
 
-    // Retrieve remaining space from sailings file
+    // Retrieve remaining space from sailings file (space still treated as units, not meters)
     unsigned int remainingHCL = 0, remainingLCL = 0;
     FileIO_Sailings::getRemainingSpace(sailingID, remainingHCL, remainingLCL);
 
-    // Decide lane based on vehicle type
+    // Decide lane based on vehicle type (height in meters)
     if (isHighCeiling(vehicle)) {
         // Must use HCL
-        if (vehicle.length_cm <= remainingHCL) {
+        if (vehicle.length_m <= remainingHCL) {
             useHCL = true;
             return true;
         }
     } else {
         // Regular vehicles prefer LCL
-        if (vehicle.length_cm <= remainingLCL) {
-            useHCL = false; // Use LCL
+        if (vehicle.length_m <= remainingLCL) {
+            useHCL = false;
             return true;
         }
         // If LCL full, fallback to HCL
-        if (vehicle.length_cm <= remainingHCL) {
+        if (vehicle.length_m <= remainingHCL) {
             useHCL = true;
             return true;
         }
@@ -95,16 +105,16 @@ bool Reservation::newCustomerReservation(const FerrySys::VehicleRecord &vehicle,
     {
         if (!FerrySys::FileIO_VehicleRecord::writeVehicle(vehicle))
         {
-          //  std::cerr << "Error: Could not save vehicle record.\n";
             return false;
         }
     }
+
     // Write reservation
     if (!FileIO_Reservations::writeReservation(vehicle.license, sailingID))
         return false;
 
     // Deduct space dynamically
-    adjustSailingSpace(sailingID, useHCL, -static_cast<int>(vehicle.length_cm));
+    adjustSailingSpace(sailingID, vehicle, -static_cast<int>(vehicle.length_m));
     return true;
 }
 
@@ -131,7 +141,7 @@ bool Reservation::returningCustomerReservation(const std::string &licensePlate,
         return false;
 
     // Deduct space dynamically
-    adjustSailingSpace(sailingID, useHCL, -static_cast<int>(vehicle.length_cm));
+    adjustSailingSpace(sailingID, vehicle, -static_cast<int>(vehicle.length_m));
     return true;
 }
 
@@ -149,9 +159,8 @@ bool Reservation::deleteReservation(const std::string &licensePlate,
     if (!FileIO_Reservations::deleteReservation(licensePlate, sailingID))
         return false;
 
-    // Restore space dynamically (assumes same lane logic as booking)
-    bool useHCL = isHighCeiling(vehicle);
-    adjustSailingSpace(sailingID, useHCL, static_cast<int>(vehicle.length_cm));
+    // Restore space dynamically
+    adjustSailingSpace(sailingID, vehicle, static_cast<int>(vehicle.length_m));
     return true;
 }
 

@@ -32,12 +32,12 @@ namespace FerrySys
     {
         std::string license;     // Trimmed to <=10 chars when encoded
         std::string phone;       // Trimmed to <=14 chars when encoded
-        std::int32_t length_cm = 0;
-        std::int32_t height_cm = 0;
+        std::int32_t length_m = 0;
+        std::int32_t height_m = 0;
 
         bool isSpecial() const noexcept
         {
-            return (height_cm > 200) || (length_cm > 700);
+            return (height_m > 200) || (length_m > 700);
         }
     };
 

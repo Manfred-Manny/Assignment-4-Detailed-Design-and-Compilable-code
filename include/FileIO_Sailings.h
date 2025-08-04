@@ -83,7 +83,8 @@ public:
     // Update remaining space dynamically after reservation changes
     static bool updateSailingSpace(
         SailingID sailingID,
-        bool isHighCeiling,
+        int carLength,
+        int carHeight,
         int amount
     );
 

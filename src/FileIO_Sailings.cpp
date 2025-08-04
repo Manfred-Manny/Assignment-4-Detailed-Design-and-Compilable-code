@@ -235,18 +235,26 @@ bool FileIO_Sailings::getRemainingSpace(
 //------------------------------------------------------------
 // Update sailing space dynamically (after reservation changes)
 //------------------------------------------------------------
-bool FileIO_Sailings::updateSailingSpace(
-    SailingID sailingID,
-    bool isHighCeiling,
-    int amount
-) {
+bool FileIO_Sailings::updateSailingSpace(SailingID sailingID, int carLength, int carHeight, int amount)
+{
     std::fstream file("sailings.dat", std::ios::binary | std::ios::in | std::ios::out);
     if (!file) return false;
 
     Sailingrec rec{};
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
         if (sanitizeCharArray(rec.id) == sailingID) {
-            if (isHighCeiling)
+
+            // Decide space type dynamically
+            bool useHCL = false;
+
+            if (carLength > 7 && carHeight > 2) {
+                useHCL = true;
+            } else if (rec.remainingLCL <= 0) {
+                useHCL = true;  // fallback if LCL full
+            }
+
+            // Update space count
+            if (useHCL)
                 rec.remainingHCL += amount;
             else
                 rec.remainingLCL += amount;
@@ -259,5 +267,6 @@ bool FileIO_Sailings::updateSailingSpace(
             return true;
         }
     }
+
     return false;
 }

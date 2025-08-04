@@ -98,8 +98,8 @@ void FileIO_VehicleRecord::listVehicles()
 
         std::cout << std::left << std::setw(12) << vehicle.license
                   << std::setw(16) << vehicle.phone
-                  << std::setw(10) << vehicle.length_cm
-                  << std::setw(10) << vehicle.height_cm
+                  << std::setw(10) << vehicle.length_m
+                  << std::setw(10) << vehicle.height_m
                   << (vehicle.isSpecial() ? "Special (HCL)" : "Standard (LCL)") << "\n";
     }
 

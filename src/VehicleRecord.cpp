@@ -23,11 +23,11 @@ namespace FerrySys
         encodeField(in.phone, out.data() + VEH_LIC_CHARS, VEH_PHONE_CHARS);
 
         // Length [24..27]
-        std::int32_t len = in.length_cm;
+        std::int32_t len = in.length_m;
         std::memcpy(out.data() + VEH_LIC_CHARS + VEH_PHONE_CHARS, &len, sizeof(len));
 
         // Height [28..31]
-        std::int32_t ht = in.height_cm;
+        std::int32_t ht = in.height_m;
         std::memcpy(out.data() + VEH_LIC_CHARS + VEH_PHONE_CHARS + sizeof(len),
                     &ht, sizeof(ht));
     }
@@ -46,15 +46,15 @@ namespace FerrySys
         std::memcpy(&ht,  in.data() + VEH_LIC_CHARS + VEH_PHONE_CHARS + sizeof(len),
                     sizeof(ht));
 
-        out.length_cm = len;
-        out.height_cm = ht;
+        out.length_m = len;
+        out.height_m = ht;
     }
 
     bool vehicleEqual(const VehicleRecord &a, const VehicleRecord &b) noexcept
     {
         return a.license == b.license &&
                a.phone   == b.phone &&
-               a.length_cm == b.length_cm &&
-               a.height_cm == b.height_cm;
+               a.length_m == b.length_m &&
+               a.height_m == b.height_m;
     }
 }

@@ -200,7 +200,7 @@ unsigned int UserInterface::getDimension(const std::string &label)
     std::string input;
     while (true)
     {
-        std::cout << label << " (cm) [0 = Cancel]: ";
+        std::cout << label << " (m) [0 = Cancel]: ";
         std::getline(std::cin, input);
 
         if (input == "0") return 0;
@@ -465,11 +465,15 @@ void UserInterface::reservationMenu()
                 vehicle.license = getLicensePlate();
                 if (vehicle.license.empty()) continue;
 
-                vehicle.height_cm = getDimension("Vehicle Height");
-                if (vehicle.height_cm == 0) continue;
+                // Explicitly ask for height in meters
+                std::cout << "Enter Vehicle Height: ";
+                vehicle.height_m = getDimension("Vehicle Height");
+                if (vehicle.height_m == 0) continue;
 
-                vehicle.length_cm = getDimension("Vehicle Length");
-                if (vehicle.length_cm == 0) continue;
+                // Explicitly ask for length in meters
+                std::cout << "Enter Vehicle Length: ";
+                vehicle.length_m = getDimension("Vehicle Length");
+                if (vehicle.length_m == 0) continue;
 
                 sailingID = getSailingID();
                 if (sailingID.empty()) continue;
