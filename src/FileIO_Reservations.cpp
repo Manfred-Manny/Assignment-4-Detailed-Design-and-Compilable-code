@@ -74,9 +74,33 @@ bool FileIO_Reservations::getNextReservation(std::string &licensePlate,
 bool FileIO_Reservations::writeReservation(const std::string &licensePlate,
                                            SailingID sailingID)
 {
+    // Check duplicate reservation
+    std::ifstream checkFile("reservations.dat", std::ios::binary);
+    if (checkFile)
+    {
+        ReservationRec rec{};
+        std::string searchLicense = toUpper(licensePlate);
+        std::string searchID = toUpper(sailingID);
+
+        while (checkFile.read(reinterpret_cast<char*>(&rec), sizeof(rec)))
+        {
+            std::string currentLicense = toUpper(FerrySys::decodeField(
+                reinterpret_cast<unsigned char*>(rec.licenseplate),
+                FerrySys::VEH_LIC_CHARS));
+            std::string currentID = toUpper(FerrySys::decodeField(
+                reinterpret_cast<unsigned char*>(rec.sailingID),
+                16));
+
+            if (currentLicense == searchLicense && currentID == searchID)
+            {
+                return false; // Duplicate found
+            }
+        }
+    }
+
+    // Append reservation
     std::ofstream file("reservations.dat", std::ios::binary | std::ios::app);
-    if (!file)
-        return false;
+    if (!file) return false;
 
     ReservationRec rec{};
     FerrySys::encodeField(licensePlate,
@@ -90,6 +114,7 @@ bool FileIO_Reservations::writeReservation(const std::string &licensePlate,
     file.write(reinterpret_cast<const char*>(&rec), sizeof(rec));
     return true;
 }
+
 
 // ============================================================
 // Mark reservation as checked-in
@@ -251,3 +276,33 @@ int FileIO_Reservations::spaceAvailable(SailingID sailingID)
     int availableLCL = sailing.remainingLCL - usedLCL;
     return availableHCL + availableLCL;
 }
+
+bool FileIO_Reservations::reservationExists(const std::string &licensePlate,
+                                            SailingID sailingID)
+{
+    std::ifstream file("reservations.dat", std::ios::binary);
+    if (!file) return false;
+
+    ReservationRec rec;
+    while (file.read(reinterpret_cast<char*>(&rec), sizeof(ReservationRec)))
+    {
+        // Decode both fields with trimming
+        std::string lic = FerrySys::decodeField(
+            reinterpret_cast<const unsigned char*>(rec.licenseplate),
+            FerrySys::VEH_LIC_CHARS
+        );
+
+        std::string sid = FerrySys::decodeField(
+            reinterpret_cast<const unsigned char*>(rec.sailingID),
+            16
+        );
+
+        // Compare normalized strings
+        if (lic == licensePlate && sid == sailingID)
+            return true;
+    }
+    return false;
+}
+
+
+

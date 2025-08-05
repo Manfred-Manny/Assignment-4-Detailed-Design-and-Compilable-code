@@ -62,6 +62,11 @@ public:
     // Count reservations for a specific sailing
     static int countReservationsForSailing(SailingID sailingID);
 
+    // Check if a reservation already exists for a given license and sailing
+    static bool reservationExists(const std::string &licensePlate,
+                              SailingID sailingID);
+
+
     // Compute total available space (HCL + LCL) for a sailing
     static int spaceAvailable(SailingID sailingID);
 };

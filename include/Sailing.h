@@ -46,9 +46,6 @@ public:
         SailingID sailingID               // IN: Sailing ID
     );
 
-    // Print all sailings report
-    static void printReport();
-
     // Initialize/Shutdown
     static void initialize();
     static void shutdown();

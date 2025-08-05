@@ -61,7 +61,7 @@ std::string UserInterface::getVesselName()
     std::string name;
     while (true)
     {
-        std::cout << "Vessel Name (max 25 chars) [0 = Cancel]: ";
+        std::cout << "Vessel Name (Length: 25 max.) [0 = Cancel]: ";
         std::getline(std::cin, name);
 
         if (name == "0") return "";
@@ -76,7 +76,7 @@ unsigned int UserInterface::getLaneLength(const std::string &label)
     std::string input;
     while (true)
     {
-        std::cout << label << " (4 digits max) [0 = Cancel]: ";
+        std::cout << label << " (Length: 4 max.) [0 = Cancel]: ";
         std::getline(std::cin, input);
 
         if (input == "0") return 0;
@@ -94,7 +94,7 @@ std::string UserInterface::getCityCode()
     std::string city;
     while (true)
     {
-        std::cout << "Arrival City (3-letter code) [0 = Cancel]: ";
+        std::cout << "Arrival City (3 letter abbreviation) [0 = Cancel]: ";
         std::getline(std::cin, city);
 
         if (city == "0") return "";
@@ -109,7 +109,7 @@ std::string UserInterface::getDate()
     std::string date;
     while (true)
     {
-        std::cout << "Date of Departure (YY-MM-DD) [0 = Cancel]: ";
+        std::cout << "Date of Departure (YY-MM-DD format) [0 = Cancel]: ";
         std::getline(std::cin, date);
 
         // Strip spaces
@@ -136,7 +136,7 @@ std::string UserInterface::getTime()
     std::string time;
     while (true)
     {
-        std::cout << "Time of Departure (HHMM 24hr) [0 = Cancel]: ";
+        std::cout << "Time of Departure (24hr Clock) [0 = Cancel]: ";
         std::getline(std::cin, time);
 
         time.erase(std::remove_if(time.begin(), time.end(), ::isspace), time.end());
@@ -170,7 +170,7 @@ std::string UserInterface::getPhoneNumber()
     std::string phone;
     while (true)
     {
-        std::cout << "Phone (999-999-9999) [0 = Cancel]: ";
+        std::cout << " What's the Customer's phone number (999-999-9999 format) [0 = Cancel]: ";
         std::getline(std::cin, phone);
 
         if (phone == "0") return "";
@@ -185,7 +185,7 @@ std::string UserInterface::getLicensePlate()
     std::string plate;
     while (true)
     {
-        std::cout << "License Plate (max 10) [0 = Cancel]: ";
+        std::cout << "What is the customer's Car License Plate(Length 10max) [0 = Cancel]: ";
         std::getline(std::cin, plate);
 
         if (plate == "0") return "";
@@ -246,7 +246,7 @@ void UserInterface::runMainMenu()
             case 1: vesselMenu(); break;
             case 2: sailingMenu(); break;
             case 3: reservationMenu(); break;
-            case 4: Sailing::printReport(); break;
+            case 4: printSailingReport(); break;
             default:
                 std::cout << "Invalid selection. Try again.\n";
         }
@@ -401,7 +401,7 @@ void UserInterface::sailingMenu()
                     std::cout << "Sailing successfully deleted.\n";
                 else
                 {
-                    if (!promptYesNo("Sailing ID does not exist. Go back to form (Y/N)?")) break;
+                    if (!promptYesNo("Sailing ID does not exist. Do you wish to go back to the form (Y/N)?")) break;
                 }
             }
         }
@@ -415,7 +415,7 @@ void UserInterface::sailingMenu()
                 if (!Sailing::printStatus(id))
                     if (!promptYesNo("Sailing ID does not exist. Do you wish to go back to the form (Y/N)?")) break;
 
-                if (!promptYesNo("Check another Sailing (Y/N)?")) break;
+                if (!promptYesNo("Check the status of a different Sailing (Y/N)?")) break;
             }
         }
         else
@@ -443,7 +443,9 @@ void UserInterface::reservationMenu()
 
         if (choice == 0) break;
 
-        // Create Reservation
+        // ============================================================
+        // CREATE RESERVATION
+        // ============================================================
         else if (choice == 1)
         {
             std::cout << "1) New Customer\n2) Returning Customer\n0) Cancel\nSelect: ";
@@ -453,31 +455,73 @@ void UserInterface::reservationMenu()
 
             if (sub == 0) continue;
 
-            // New Customer
+            // ============================================================
+            // NEW CUSTOMER
+            // ============================================================
             if (sub == 1)
             {
                 FerrySys::VehicleRecord vehicle;
                 std::string sailingID;
 
+                // 1. Collect all inputs
                 vehicle.phone = getPhoneNumber();
                 if (vehicle.phone.empty()) continue;
 
                 vehicle.license = getLicensePlate();
                 if (vehicle.license.empty()) continue;
 
-                // Explicitly ask for height in meters
-                std::cout << "Enter Vehicle Height: ";
+               
                 vehicle.height_m = getDimension("Vehicle Height");
                 if (vehicle.height_m == 0) continue;
 
-                // Explicitly ask for length in meters
-                std::cout << "Enter Vehicle Length: ";
+                
                 vehicle.length_m = getDimension("Vehicle Length");
                 if (vehicle.length_m == 0) continue;
 
                 sailingID = getSailingID();
                 if (sailingID.empty()) continue;
 
+                // 2. Validate all inputs
+                std::vector<std::string> errors;
+
+                // License already exists?
+                if (FerrySys::FileIO_VehicleRecord::vehicleExists(vehicle.license))
+                    errors.push_back("License Plate already exists in the system.");
+
+                // Sailing exists?
+                if (!FileIO_Sailings::Sailingexist(sailingID))
+                    errors.push_back("Sailing ID doesn’t exist.");
+
+                // Sailing fully booked?
+                else
+                {
+                    float hcl, lcl;
+                    if (FileIO_Sailings::getRemainingSpace(sailingID, hcl, lcl))
+                    {
+                        if ((vehicle.height_m > 1.8 && hcl < vehicle.length_m) ||
+                            (vehicle.height_m <= 1.8 && lcl < vehicle.length_m))
+                            errors.push_back("Sailing is fully booked.");
+                    }
+                }
+
+                // Duplicate reservation check
+                if (FileIO_Reservations::reservationExists(vehicle.license, sailingID))
+                    errors.push_back("Vehicle is already reserved on this sailing.");
+
+                // 3. Show errors and prompt
+                if (!errors.empty())
+                {
+                    std::cout << "\nError(s) found:\n";
+                    for (const auto &e : errors)
+                        std::cout << "- " << e << "\n";
+
+                    if (promptYesNo("Do you wish to re-enter the details (Y/N)?"))
+                        continue; // Restart
+                    else
+                        continue; // Abort back to menu
+                }
+
+                // 4. Confirm and reserve
                 if (!promptYesNo("Make Reservation (Y/N)?")) continue;
 
                 if (Reservation::newCustomerReservation(vehicle, sailingID))
@@ -486,15 +530,67 @@ void UserInterface::reservationMenu()
                     std::cout << "Failed to make reservation.\n";
             }
 
-            // Returning Customer
+            // ============================================================
+            // RETURNING CUSTOMER
+            // ============================================================
             else if (sub == 2)
             {
-                std::string license = getLicensePlate();
+                std::string license;
+                std::string sailingID;
+
+                // 1. Collect inputs
+                license = getLicensePlate();
                 if (license.empty()) continue;
 
-                std::string sailingID = getSailingID();
+                sailingID = getSailingID();
                 if (sailingID.empty()) continue;
 
+                // 2. Validate inputs
+                std::vector<std::string> errors;
+
+                // License exists?
+                if (!FerrySys::FileIO_VehicleRecord::vehicleExists(license))
+                    errors.push_back("License plate doesn’t exist. You may need to register as a new customer.");
+
+                // Sailing exists?
+                if (!FileIO_Sailings::Sailingexist(sailingID))
+                    errors.push_back("Sailing ID doesn’t exist.");
+
+                // Sailing fully booked?
+                else
+                {
+                    float hcl, lcl;
+                    if (FileIO_Sailings::getRemainingSpace(sailingID, hcl, lcl))
+                    {
+                        // We need vehicle info to check fully booked properly
+                        FerrySys::VehicleRecord existingVehicle;
+                        if (FerrySys::FileIO_VehicleRecord::findVehicle(license, existingVehicle))
+                        {
+                            if ((existingVehicle.height_m > 1.8 && hcl < existingVehicle.length_m) ||
+                                (existingVehicle.height_m <= 1.8 && lcl < existingVehicle.length_m))
+                                errors.push_back("Sailing is fully booked.");
+                        }
+                    }
+                }
+
+                // Duplicate reservation check
+                if (FileIO_Reservations::reservationExists(license, sailingID))
+                    errors.push_back("Vehicle is already reserved on this sailing.");
+
+                // 3. Show errors and prompt
+                if (!errors.empty())
+                {
+                    std::cout << "\nError(s) found:\n";
+                    for (const auto &e : errors)
+                        std::cout << "- " << e << "\n";
+
+                    if (promptYesNo("Do you wish to re-enter the details (Y/N)?"))
+                        continue; // Restart
+                    else
+                        continue; // Abort back to menu
+                }
+
+                // 4. Confirm and reserve
                 if (!promptYesNo("Make Reservation (Y/N)?")) continue;
 
                 if (Reservation::returningCustomerReservation(license, sailingID))
@@ -504,7 +600,9 @@ void UserInterface::reservationMenu()
             }
         }
 
-        // Delete Reservation
+        // ============================================================
+        // DELETE RESERVATION
+        // ============================================================
         else if (choice == 2)
         {
             std::string sailingID = getSailingID();
@@ -517,10 +615,9 @@ void UserInterface::reservationMenu()
 
             if (Reservation::deleteReservation(license, sailingID))
                 std::cout << "Reservation successfully deleted.\n";
-            else
-                if (!promptYesNo("License Plate isn’t reserved on this sailing. Do you wish to modify it (Y/N)?")) continue;
+            else if (!promptYesNo("License Plate isn’t reserved on this sailing. Do you wish to modify it (Y/N)?"))
+                continue;
         }
-
         // Check-In Vehicles
         else if (choice == 3)
         {
@@ -528,7 +625,15 @@ void UserInterface::reservationMenu()
             {
                 std::string sailingID = getSailingID();
                 if (sailingID.empty()) break;
-
+                
+                if (!FileIO_Sailings::Sailingexist(sailingID))
+                {
+                std::cout << "Sailing ID doesn’t exist. Do you wish to go back to the form (Y/N)? ";
+                 if (promptYesNo(""))
+                continue;  // restart form
+            else
+                break;     // abort to menu
+        }
                 std::string license = getLicensePlate();
                 if (license.empty()) break;
 
@@ -538,13 +643,65 @@ void UserInterface::reservationMenu()
                     std::cout << "Vehicle successfully checked-in.\n";
                 else
                 {
-                    std::cout << "Check-in failed (reservation not found).\n";
+                    std::cout << "License PLate is not reserved on this sailing.\n";
                     if (!promptYesNo("Do you wish to modify details (Y/N)?")) break;
                 }
+            
 
-                if (!promptYesNo("Continue check-in (Y/N)?")) break;
+                if (!promptYesNo("Continue to check-in vehicles (Y/N)?")) break;
             }
         }
+    }
+}
+
+void UserInterface::printSailingReport()
+{
+    std::vector<Sailingrec> sailings = FileIO_Sailings::Sailingreport();
+
+    if (sailings.empty()) {
+        std::cout << "No sailings available.\n";
+        return;
+    }
+
+    const size_t pageSize = 5;
+    size_t page = 0;
+
+    while (true)
+    {
+        std::cout << "----------------------------------------------------------------------------------------------------------------\n";
+        std::cout << std::left << std::setw(15) << "Sailing ID"
+                  << std::setw(25) << "Vessel Name"
+                  << std::setw(20) << "Remaining HCL"
+                  << std::setw(20) << "Remaining LCL" << "\n";
+        std::cout << "----------------------------------------------------------------------------------------------------------------\n";
+
+        size_t start = page * pageSize;
+        size_t end = std::min(start + pageSize, sailings.size());
+
+        for (size_t i = start; i < end; ++i)
+        {
+            const auto &rec = sailings[i];
+            std::cout << std::left << std::setw(15) << std::string(rec.id)
+                      << std::setw(25) << std::string(rec.VesselName)
+                      << std::setw(20) << rec.remainingHCL
+                      << std::setw(20) << rec.remainingLCL << "\n";
+        }
+
+        std::cout << "----------------------------------------------------------------------------------------------------------------\n";
+
+        if (end >= sailings.size())
+            std::cout << "0) Back to Main Menu\n";
+        else
+            std::cout << "1) See More\n0) Back to Sub-Menu\n";
+
+        int choice;
+        std::cin >> choice;
+        clearInput();
+
+        if (choice == 1 && end < sailings.size())
+            page++;
+        else
+            break;
     }
 }
 

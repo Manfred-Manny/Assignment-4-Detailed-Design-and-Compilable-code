@@ -40,10 +40,11 @@ static void adjustSailingSpace(SailingID sailingID,
                                const FerrySys::VehicleRecord &vehicle,
                                int amount)
 {
+    // amount is -1 for reservation, +1 for deletion
     FileIO_Sailings::updateSailingSpace(
         sailingID,
-        static_cast<int>(vehicle.length_m), // meters now
-        static_cast<int>(vehicle.height_m), // meters now
+        vehicle.length_m,  // pass float directly
+        vehicle.height_m,  // pass float directly
         amount
     );
 }
@@ -61,8 +62,8 @@ static bool canBookSailing(const FerrySys::VehicleRecord &vehicle,
     if (!FileIO_Sailings::Sailingexist(sailingID))
         return false;
 
-    // Retrieve remaining space from sailings file (space still treated as units, not meters)
-    unsigned int remainingHCL = 0, remainingLCL = 0;
+    // Retrieve remaining space from sailings file (in meters)
+    float remainingHCL = 0, remainingLCL = 0;
     FileIO_Sailings::getRemainingSpace(sailingID, remainingHCL, remainingLCL);
 
     // Decide lane based on vehicle type (height in meters)
@@ -113,8 +114,8 @@ bool Reservation::newCustomerReservation(const FerrySys::VehicleRecord &vehicle,
     if (!FileIO_Reservations::writeReservation(vehicle.license, sailingID))
         return false;
 
-    // Deduct space dynamically
-    adjustSailingSpace(sailingID, vehicle, -static_cast<int>(vehicle.length_m));
+    // Deduct space dynamically (amount = -1)
+    adjustSailingSpace(sailingID, vehicle, -1);
     return true;
 }
 
@@ -140,8 +141,8 @@ bool Reservation::returningCustomerReservation(const std::string &licensePlate,
     if (!FileIO_Reservations::writeReservation(licensePlate, sailingID))
         return false;
 
-    // Deduct space dynamically
-    adjustSailingSpace(sailingID, vehicle, -static_cast<int>(vehicle.length_m));
+    // Deduct space dynamically (amount = -1)
+    adjustSailingSpace(sailingID, vehicle, -1);
     return true;
 }
 
@@ -159,8 +160,8 @@ bool Reservation::deleteReservation(const std::string &licensePlate,
     if (!FileIO_Reservations::deleteReservation(licensePlate, sailingID))
         return false;
 
-    // Restore space dynamically
-    adjustSailingSpace(sailingID, vehicle, static_cast<int>(vehicle.length_m));
+    // Restore space dynamically (amount = +1)
+    adjustSailingSpace(sailingID, vehicle, +1);
     return true;
 }
 

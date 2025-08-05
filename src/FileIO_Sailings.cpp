@@ -31,8 +31,8 @@ static std::string sanitizeCharArray(const char* raw) {
 bool FileIO_Sailings::getNextSailing(
     SailingID &sailingID,
     std::string &vesselName,
-    unsigned short &remainingHCL,
-    unsigned short &remainingLCL
+    float &remainingHCL,
+    float &remainingLCL
 ) {
     std::fstream file("sailings.dat", std::ios::binary | std::ios::in);
     if (!file) return false;
@@ -55,8 +55,8 @@ bool FileIO_Sailings::getNextSailing(
 void FileIO_Sailings::writeSailing(
     SailingID sailingID,
     const std::string &vesselName,
-    unsigned short remainingHCL,
-    unsigned short remainingLCL
+    float remainingHCL,
+    float remainingLCL
 ) {
     std::fstream file("sailings.dat", std::ios::binary | std::ios::app);
     if (!file) {
@@ -130,7 +130,6 @@ bool FileIO_Sailings::deleteSailing(SailingID sailingIDtoDelete) {
     return found;
 }
 
-
 //------------------------------------------------------------
 // Check if sailing exists by ID
 //------------------------------------------------------------
@@ -149,36 +148,87 @@ bool FileIO_Sailings::Sailingexist(SailingID sailingID) {
 }
 
 //------------------------------------------------------------
-// Print formatted report of all sailings
+// Get remaining space for a sailing
 //------------------------------------------------------------
-void FileIO_Sailings::Sailingreport() {
-    std::fstream file("sailings.dat", std::ios::binary | std::ios::in);
-    if (!file) {
-        std::cerr << "No sailings available (sailings.dat not found).\n";
-        return;
-    }
+bool FileIO_Sailings::getRemainingSpace(
+    SailingID sailingID,
+    float &remainingHCL,
+    float &remainingLCL
+) {
+    std::ifstream file("sailings.dat", std::ios::binary);
+    if (!file) return false;
 
     Sailingrec rec{};
-    std::cout << "----------------------------------------------------------------------------------------------------------------\n";
-    std::cout << std::left << std::setw(15) << "Sailing ID"
-              << std::setw(25) << "Vessel Name"
-              << std::setw(20) << "Remaining HCL"
-              << std::setw(20) << "Remaining LCL" << "\n";
-    std::cout << "----------------------------------------------------------------------------------------------------------------\n";
-
     while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        std::cout << std::left << std::setw(15) << sanitizeCharArray(rec.id)
-                  << std::setw(25) << sanitizeCharArray(rec.VesselName)
-                  << std::setw(20) << rec.remainingHCL
-                  << std::setw(20) << rec.remainingLCL << "\n";
+        if (sanitizeCharArray(rec.id) == sailingID) {
+            remainingHCL = rec.remainingHCL;
+            remainingLCL = rec.remainingLCL;
+            return true;
+        }
     }
-
-    std::cout << "----------------------------------------------------------------------------------------------------------------\n";
+    return false;
 }
 
 //------------------------------------------------------------
-// Display formatted status of single sailing
+// Update sailing space dynamically (after reservation changes)
 //------------------------------------------------------------
+bool FileIO_Sailings::updateSailingSpace(SailingID sailingID, float carLength, float carHeight, int amount)
+{
+    std::fstream file("sailings.dat", std::ios::binary | std::ios::in | std::ios::out);
+    if (!file) return false;
+
+    Sailingrec rec{};
+    while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
+        if (sanitizeCharArray(rec.id) == sailingID) {
+
+            // Add buffer for parking space
+            float spaceNeeded = carLength + 0.5f;
+
+            // Determine if this should use HCL or LCL
+            bool useHCL = false;
+            if (spaceNeeded > 7 && carHeight > 2) {
+                useHCL = true;
+            } else if (rec.remainingLCL <= 0 && amount < 0) {
+                // fallback if LCL is full when adding
+                useHCL = true;
+            }
+
+            // Adjust remaining space (in meters)
+            if (useHCL)
+                rec.remainingHCL += (amount * spaceNeeded);
+            else
+                rec.remainingLCL += (amount * spaceNeeded);
+
+            // Clamp to avoid negative space
+            if (rec.remainingHCL < 0) rec.remainingHCL = 0;
+            if (rec.remainingLCL < 0) rec.remainingLCL = 0;
+
+            file.seekp(-static_cast<int>(sizeof(rec)), std::ios::cur);
+            file.write(reinterpret_cast<const char*>(&rec), sizeof(rec));
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//------------------------------------------------------------
+// Return all sailings (for UI pagination)
+//------------------------------------------------------------
+std::vector<Sailingrec> FileIO_Sailings::Sailingreport()
+{
+    std::vector<Sailingrec> sailings;
+    std::ifstream file("sailings.dat", std::ios::binary);
+    if (!file) return sailings;
+
+    Sailingrec rec{};
+    while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
+        sailings.push_back(rec);
+    }
+
+    return sailings;
+}
+
 bool FileIO_Sailings::sailingstatus(SailingID sailingID) {
     std::fstream file("sailings.dat", std::ios::binary | std::ios::in);
     if (!file) {
@@ -198,72 +248,13 @@ bool FileIO_Sailings::sailingstatus(SailingID sailingID) {
                       << std::setw(20) << "Remaining LCL" << "\n";
             std::cout << "----------------------------------------------------------------------------------------------------------------\n";
 
-            std::cout << std::left << std::setw(15) << sanitizeCharArray(rec.id)
+            std::cout << std::fixed << std::setprecision(1)
+                      << std::left << std::setw(15) << sanitizeCharArray(rec.id)
                       << std::setw(25) << reservationCount
                       << std::setw(20) << rec.remainingHCL
                       << std::setw(20) << rec.remainingLCL << "\n";
             std::cout << "----------------------------------------------------------------------------------------------------------------\n";
-            return true;
-        }
-    }
 
-    return false;
-}
-
-//------------------------------------------------------------
-// Get remaining space for a sailing
-//------------------------------------------------------------
-bool FileIO_Sailings::getRemainingSpace(
-    SailingID sailingID,
-    unsigned int &remainingHCL,
-    unsigned int &remainingLCL
-) {
-    std::ifstream file("sailings.dat", std::ios::binary);
-    if (!file) return false;
-
-    Sailingrec rec{};
-    while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        if (sanitizeCharArray(rec.id) == sailingID) {
-            remainingHCL = rec.remainingHCL;
-            remainingLCL = rec.remainingLCL;
-            return true;
-        }
-    }
-    return false;
-}
-
-//------------------------------------------------------------
-// Update sailing space dynamically (after reservation changes)
-//------------------------------------------------------------
-bool FileIO_Sailings::updateSailingSpace(SailingID sailingID, int carLength, int carHeight, int amount)
-{
-    std::fstream file("sailings.dat", std::ios::binary | std::ios::in | std::ios::out);
-    if (!file) return false;
-
-    Sailingrec rec{};
-    while (file.read(reinterpret_cast<char*>(&rec), sizeof(rec))) {
-        if (sanitizeCharArray(rec.id) == sailingID) {
-
-            // Decide space type dynamically
-            bool useHCL = false;
-
-            if (carLength > 7 && carHeight > 2) {
-                useHCL = true;
-            } else if (rec.remainingLCL <= 0) {
-                useHCL = true;  // fallback if LCL full
-            }
-
-            // Update space count
-            if (useHCL)
-                rec.remainingHCL += amount;
-            else
-                rec.remainingLCL += amount;
-
-            if (rec.remainingHCL < 0) rec.remainingHCL = 0;
-            if (rec.remainingLCL < 0) rec.remainingLCL = 0;
-
-            file.seekp(-static_cast<int>(sizeof(rec)), std::ios::cur);
-            file.write(reinterpret_cast<const char*>(&rec), sizeof(rec));
             return true;
         }
     }

@@ -34,6 +34,7 @@ private:
     static void vesselMenu();
     static void sailingMenu();
     static void reservationMenu();
+    static void printSailingReport();
 
     // Yes/No prompt with 0 = cancel
     static bool promptYesNo(const std::string &message);

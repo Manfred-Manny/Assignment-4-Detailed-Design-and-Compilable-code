@@ -26,8 +26,8 @@
 struct Sailingrec {
     char id[16];                  // Fixed-length Sailing ID (e.g., "YYZ:23:12")
     char VesselName[25];          // Fixed-length Vessel name
-    unsigned short remainingHCL;  // Remaining high-ceiling lane length
-    unsigned short remainingLCL;  // Remaining low-ceiling lane length
+    float remainingHCL;  // Remaining high-ceiling lane length
+    float remainingLCL;  // Remaining low-ceiling lane length
 };
 
 class FileIO_Sailings
@@ -37,16 +37,16 @@ public:
     static bool getNextSailing(
         SailingID &sailingID,
         std::string &vesselName,
-        unsigned short &remainingHCL,
-        unsigned short &remainingLCL
+        float &remainingHCL,
+        float &remainingLCL
     );
 
     // Append new sailing record
     static void writeSailing(
         SailingID sailingID,
         const std::string &vesselName,
-        unsigned short remainingHCL,
-        unsigned short remainingLCL
+        float remainingHCL,
+        float remainingLCL
     );
 
     // Delete sailing by ID (cascades reservation deletion)
@@ -65,8 +65,9 @@ public:
         SailingID sailingID
     );
 
-    // Print formatted report of all sailings
-    static void Sailingreport();
+    // Returns all sailings
+   static std::vector<Sailingrec> Sailingreport();
+
 
     // Check if sailing exists by ID
     static bool Sailingexist(
@@ -76,15 +77,15 @@ public:
     // Get remaining space for a sailing
     static bool getRemainingSpace(
         SailingID sailingID,
-        unsigned int &remainingHCL,
-        unsigned int &remainingLCL
+        float &remainingHCL,
+        float &remainingLCL
     );
 
     // Update remaining space dynamically after reservation changes
     static bool updateSailingSpace(
         SailingID sailingID,
-        int carLength,
-        int carHeight,
+        float carLength,
+        float carHeight,
         int amount
     );
 
